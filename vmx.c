@@ -19,7 +19,7 @@ void main(int argc, char *argv[]){
 
     char memoria[MEMORIA]; //vector de 1 byte
     short int tabla[2][8]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
-    char registros[REGISTROS]; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
+    int registros[REGISTROS]; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
 
     if (argc >= 3)
         flag = strcmp(argv[2],"-d")==0;//argv[2]=="-d"; soy un boludo por dios
@@ -50,16 +50,6 @@ void main(int argc, char *argv[]){
     else {
         printf("Error de validacion");
     }
-
-
-
-    for (int k =0; k <= tamanio; k++){
-        printf("%x \n", memoria[k]);
-    }
-    printf("%d", tamanio);
-
-
-
 }
 
 int validarDatos(file * arch, short int *tamanioCodigo){ //preguntar
@@ -89,40 +79,65 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][8]){ //inicializar 
 }
 
 void Ejecucion(char memoria[MEMORIA], short int tabla[][8], char registros[REGISTROS]){
-    int errorSig; int Topc;
+    int errorSig;
 
 
-    registros[CS] = 0x00;
-    registros[DS] = 0x10;
+    registros[CS] = 0x00000000;
+    registros[DS] = 0x00010000;
     registros[IP] = registros[CS];
     registros[OPC] = (registro[IP]) & 0x1F; // me guardo los 5 bits del codigo de operacion
 
-    errorSig = !((Topc>=0 && Topc<=10) || (Topc >=16 && Topc<=0x1F) || (Topc==0x0F)); //preguntar
-    TopB=0;
-    TopA=0;
+    errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F)); //preguntar
+    int TopB=0;
+    int TopA=0;
+    int opA, opB;
 
-    while (!errorSig && registros[OPC]!=0x0F){re
-        //registro[opc] = 50
+    while (!errorSig && registros[OPC]!=0x0F){
+        //memoria[IP] = 50 / 01010000
+        //registro[opc] = 10000
 
-        if ((registros[OPC] >> 4)& 1){ //2 operandos
-            TopB= ( >> 6)& 0xFF; // si es un operando de mas de 1 byte, como lo guardo
-            TopA= ( >> 4)& 0xFF;
+        if ((memoria[registros[IP]] >> 4)& 1){ //2 operandos
+            TopB= (memoria[IP]>> 6)& 0xFF; // si es un operando de mas de 1 byte, como lo guardo
+            switch (TopB){
+                case 2:
+                    opB = (memoria[IP+1] << 4) | memoria[IP+2]
+                    break;
+                case 3:
+                    opB = ((memoria[IP+1] << 4) | memoria[IP+2]) << 4 | memoria[IP+3]
+                    break;
+                default:
+                    opB = memoria[IP+1]
+                    break;
+            }
+            TopA= (memoria[IP] >> 4)& 0xFF;
+            if (TopA == 3) // el tipo de operando de A solo puede ser 1 o 3
+                opA = ((memoria[IP+TopB+1] << 4) | memoria[IP+TopB+2]) << 4 | memoria[IP+TopB+3]
+            else
+                opB = memoria[IP+TopB+1];
             //analizo pesos y tipos funcion aparte
-            //reviso que no me caiga del CS registros if (memoria[IP]+tamanoopA+tamanoB es mewnor a tamanocodigo)
-
-            registros[IP]=registros[IP]+tamnototal
+            //reviso que no me caiga del CS registros if (memoria[IP]+tamanoopA+tamanoB es mewnor a tamanocodigo // me parece que no hace falta verificar esto)
         }
         else{
-            if ((registros[OPC] >> 5) & 0xFFF  == 0x000)
+            if ((memoria[registros[IP]] >> 5) & 0xFFF  == 0x000)
                 //sin operando, stop
             else{
-                TopA=
+                TopA= (memoria[IP] >> 4)& 0xFF;
+                if (TopA == 3) // el operando A solo puede ser 1 o 3
+                    opA = ((memoria[IP+TopB+1] << 4) | memoria[IP+TopB+2]) << 4 | memoria[IP+TopB+3]
+                else
+                    opB = memoria[IP+TopB+1];
             }
         }
+        // aca hay que guardar en registros[OP1] y registros[OP2] los operandos
+        // el byte mas significativo va el tipo de operando y en el resto el operando
+
+
         registros[IP] = 1+TopB+TopA;
 
-        Topc = (registro[IP]) & 0x1F; // me guardo los 5 bits del codigo de operacio
-        errorSig = !((Topc>=0 && Topc<=10) || (Topc >=16 && Topc<=0x1F) || (Topc==0x0F));
+        // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
+
+        registros[OPC] = (registro[IP]) & 0x1F; // me guardo los 5 bits del codigo de operacio
+        errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
 
 
     }
