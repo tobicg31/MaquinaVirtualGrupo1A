@@ -78,14 +78,14 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][8]){ //inicializar 
             Tabla[i][j] = -1;
 }
 
-void Ejecucion(char memoria[MEMORIA], short int tabla[][8], char registros[REGISTROS]){
+void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGISTROS]){
     int errorSig;
 
 
     registros[CS] = 0x00000000;
     registros[DS] = 0x00010000;
     registros[IP] = registros[CS];
-    registros[OPC] = (registro[IP]) & 0x1F; // me guardo los 5 bits del codigo de operacion
+    registros[OPC] = (memoria[registro[IP]]) & 0x1F; // me guardo los 5 bits del codigo de operacion
 
     errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F)); //preguntar
     int TopB=0;
@@ -136,7 +136,7 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], char registros[REGIS
 
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
 
-        registros[OPC] = (registro[IP]) & 0x1F; // me guardo los 5 bits del codigo de operacio
+        registros[OPC] = memoria[(registro[IP])] & 0x1F; // me guardo los 5 bits del codigo de operacio
         errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
 
 
