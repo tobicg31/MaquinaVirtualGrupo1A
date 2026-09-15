@@ -7,6 +7,19 @@
 #define REGISTROS 32
 #define IP 0
 #define OPC 1
+#define OP1 2
+#define OP2 3
+#define LAR 4
+#define MAR 5
+#define MBR 7
+#define EAX 10
+#define EBX 11
+#define ECX 12
+#define EDX 13
+#define EEX 14
+#define EFX 15
+#define AC 16
+#define CC 17
 #define CS 26
 #define DS 27
 
@@ -20,6 +33,9 @@ void main(int argc, char *argv[]){
     char memoria[MEMORIA]; //vector de 1 byte
     short int tabla[2][8]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
     int registros[REGISTROS]; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
+    //vector de *funciones
+
+   // function = {mov, add, sub}; f[0](uigiygi)
 
     if (argc >= 3)
         flag = strcmp(argv[2],"-d")==0;//argv[2]=="-d"; soy un boludo por dios
@@ -92,7 +108,7 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
     int TopA=0;
     int opA, opB;
 
-    while (!errorSig && registros[OPC]!=0x0F){
+    while (!errorSig && registros[OPC]!=0x0F){ //<----------------cambiar a un Do-while
         //memoria[IP] = 50 / 01010000
         //registro[opc] = 10000
 
@@ -115,12 +131,13 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
             else
                 opB = memoria[IP+TopB+1];
             //analizo pesos y tipos funcion aparte
-            //reviso que no me caiga del CS registros if (memoria[IP]+tamanoopA+tamanoB es mewnor a tamanocodigo // me parece que no hace falta verificar esto)
+            //reviso que no me caiga del CS registros if (memoria[IP]+tamanoopA+tamanoB es mewnor a tamanocodigo
+            // me parece que no hace falta verificar esto)
         }
         else{
             if ((memoria[registros[IP]] >> 5) & 0xFFF  == 0x000)
                 //sin operando, stop
-            else{
+            else{ //1 solo operando
                 TopA= (memoria[IP] >> 4)& 0xFF;
                 if (TopA == 3) // el operando A solo puede ser 1 o 3
                     opA = ((memoria[IP+TopB+1] << 4) | memoria[IP+TopB+2]) << 4 | memoria[IP+TopB+3]
@@ -128,6 +145,7 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
                     opB = memoria[IP+TopB+1];
             }
         }
+
         // aca hay que guardar en registros[OP1] y registros[OP2] los operandos
         // el byte mas significativo va el tipo de operando y en el resto el operando
 
