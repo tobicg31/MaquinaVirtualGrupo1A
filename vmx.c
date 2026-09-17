@@ -27,18 +27,51 @@ int validarDatos(file * arch, short int *tamanoCodigo);
 void inicializarTabla(short int tamCodigo, short int Tabla[][8]);
 void Ejecucion(char memoria[MEMORIA], short int tabla[][8], char registros[REGISTROS]);
 
+void STOP(int, int, int, char, int, short int);
+void JMP(int, int, int, char, int, short int);
+void JP(int, int, int, char, int, short int);
+void JN(int, int, int, char, int, short int);
+void JZ(int, int, int, char, int, short int);
+void JC(int, int, int, char, int, short int);
+void JV(int, int, int, char, int, short int);
+void JNP(int, int, int, char, int, short int);
+void JNN(int, int, int, char, int, short int);
+void JNZ(int, int, int, char, int, short int);
+void NOT(int, int, int, char, int, short int);
+void B(int, int, int, char, int, short int);
+void C(int, int, int, char, int, short int);
+void D(int, int, int, char, int, short int);
+void E(int, int, int, char, int, short int);
+void STOP(int, int, int, char, int, short int, int);
+void MOV(int, int, int, char, int, short int);
+void ADD(int, int, int, char, int, short int);
+void SUB(int, int, int, char, int, short int);
+void MUL(int, int, int, char, int, short int);
+void DIV(int, int, int, char, int, short int);
+void AND(int, int, int, char, int, short int);
+void OR(int, int, int, char, int, short int);
+void XOR(int, int, int, char, int, short int);
+void SWAP(int, int, int, char, int, short int);
+void SHL(int, int, int, char, int, short int);
+void SHR(int, int, int, char, int, short int);
+void SAR(int, int, int, char, int, short int);
+void LDL(int, int, int, char, int, short int);
+void LDH(int, int, int, char, int, short int);
+void RND(int, int, int, char, int, short int);
+
 void main(int argc, char *argv[]){
     int flag;
 
     char memoria[MEMORIA]; //vector de 1 byte
     short int tabla[2][8]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
     int registros[REGISTROS]; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
+    void (*Operaciones[31])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, B, C, D, E, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND}
     //vector de *funciones
 
    // function = {mov, add, sub}; f[0](uigiygi)
 
     if (argc >= 3)
-        flag = strcmp(argv[2],"-d")==0;//argv[2]=="-d"; soy un boludo por dios
+        flag = strcmp(argv[2],"-d")==0//argv[2]=="-d"; soy un boludo por dios
     else
         flag = 0;
 
@@ -50,6 +83,7 @@ void main(int argc, char *argv[]){
     int tamanioArchivo=0;
     short int tamCodigo;
 
+    int validar;
     validar = validarDatos(arch, &tamCodigo); //ya me queda el puntero actualizado ?????????
     if (validar){
         inicializarTabla(tamCodigo);
@@ -97,7 +131,6 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][8]){ //inicializar 
 void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGISTROS]){
     int errorSig;
 
-
     registros[CS] = 0x00000000;
     registros[DS] = 0x00010000;
     registros[IP] = registros[CS];
@@ -116,13 +149,13 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
             TopB= (memoria[IP]>> 6)& 0xFF; // si es un operando de mas de 1 byte, como lo guardo
             switch (TopB){
                 case 2:
-                    opB = (memoria[IP+1] << 4) | memoria[IP+2]
+                    opB = (memoria[IP+1] << 4) | memoria[IP+2;
                     break;
                 case 3:
-                    opB = ((memoria[IP+1] << 4) | memoria[IP+2]) << 4 | memoria[IP+3]
+                    opB = ((memoria[IP+1] << 4) | memoria[IP+2]) << 4 | memoria[IP+3];
                     break;
                 default:
-                    opB = memoria[IP+1]
+                    opB = memoria[IP+1];
                     break;
             }
             TopA= (memoria[IP] >> 4)& 0xFF;
@@ -147,10 +180,16 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
         }
 
         // aca hay que guardar en registros[OP1] y registros[OP2] los operandos
-        // el byte mas significativo va el tipo de operando y en el resto el operando
+        // el byte mas significativo va el tipo d operando y en el resto el operando
+        registros[OP1] = TopA<<24 | opA;
+        registros[OP2] = TopB <<24 | opB;
 
+        int IPant;
+        IPant = registros[IP];
 
         registros[IP] = 1+TopB+TopA;
+
+        Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPAnt);
 
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
 
@@ -161,3 +200,55 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
     }
 
 }
+int validarMemoria(char memoria[],short int tabla[][8],int op){
+    int segmento = op>>16; // preguntar cual es la direccion logica, que es lo que cargo en el LAR
+
+    int direccionfisica=tabla[segmento][0]+(op & 0xFF);
+    return dire
+}
+void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant){
+    if (flag){
+        printf("[%04X]\tSTOP", IPant);
+    }
+    registros[IP]=-1;
+}
+void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant){
+    if((op1>>24==3 && validarMemoria()) || op1>>24==1){
+        if (flag){
+            printf("[%04X]")
+        }
+
+    }
+
+
+
+}
+void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void JC(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void JV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void B(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void C(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void D(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void E(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
+void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
