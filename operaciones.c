@@ -1,0 +1,151 @@
+#include "operaciones.h"
+
+void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[31]){
+    if (flag){
+        printf("[%04X] %02X\t | STOP", IPant, memoria[IPant]);
+    }
+    registros[IP]=-1;
+}
+
+void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    if(op1>>24==3){ //operando de memoria
+        //cargo en el LAR la direccion logica, reviso el cod de segmento:  
+        //registros[DS] = 00 01 00 00
+        if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+            cargarLAR(op1, registros, tabla); //guardo la dir logica
+
+            //en la parte del MAR cuantos bytes:
+            registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+            //traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
+            registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+            if( validoDirFisica(op1, registros, tabla) ){
+                //guardar en el MBR el valor:
+                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+            }
+            else
+                printf("FALLO DE SEGMENTO");   
+            registros[IP] = registros[MBR]; //hago el salto
+            if (flag){
+                printf("[%04X]", IPant);
+                for (int i = IPant; i < registros[IP]; i++){
+                    printf("%02X", memoria[i]);
+                }
+                printf("\t | JMP [%d]", registros[MBR]);
+                
+            }
+                
+        }
+        else
+            printf("FALLO DE SEGMENTO");
+    }
+    else{// operando de registro
+        registros[IP] = registros[op1 & 0x1F];
+        if (flag){
+                printf("[%04X]", IPant);
+                for (int i = IPant; i < registros[IP]; i++){
+                    printf("%02X", memoria[i]);
+                }
+                printf("\t | JMP [%s]", nomRegistro[op1 & 0x1F]); //podria haber un vector con los nombres d los registros
+            }
+    }
+}
+void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    if (registros[CC]>>30 == 0){ // N y Z son 0
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JP [%d]", registros[MBR]);
+            else
+                printf("\t | JP [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
+}
+void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+
+}
+void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void JC(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void JV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+
+void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void B(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void C(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void D(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void E(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}
+void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]){
+    
+}

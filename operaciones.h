@@ -1,0 +1,51 @@
+#define MEMORIA 16834
+#define REGISTROS 32
+#define IP 0
+#define OPC 1
+#define OP1 2
+#define OP2 3
+#define LAR 4
+#define MAR 5
+#define MBR 7
+#define EAX 10
+#define EBX 11
+#define ECX 12
+#define EDX 13
+#define EEX 14
+#define EFX 15
+#define AC 16
+#define CC 17
+#define CS 26
+#define DS 27
+
+void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[31]);
+void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]);
+void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[31]);
+void JN(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void JZ(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void JC(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void JV(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void JNP(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void JNN(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void JNZ(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void NOT(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void B(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void C(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void D(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void E(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void STOP(int, int, int, char, int, short int t, int,int IPant, char* nomRegistro[31]);
+void MOV(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void ADD(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void SUB(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void MUL(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void DIV(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void AND(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void OR(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void XOR(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void SWAP(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void SHL(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void SHR(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void SAR(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void LDL(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void LDH(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
+void RND(int, int, int, char, int, short int t,int IPant, char* nomRegistro[31]);
