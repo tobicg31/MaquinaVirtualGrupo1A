@@ -65,25 +65,109 @@ void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
     }
 }
 void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-
+    if (registros[CC]>>30 == 0b10){ // N==1 Z==0
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JN [%d]", registros[MBR]);
+            else
+                printf("\t | JN [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
 }
 void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    
+    if (registros[CC]>>30 == 0b01){ // N==0 Z==1
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JZ [%d]", registros[MBR]);
+            else
+                printf("\t | JZ [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
 }
 void JC(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    
+    if (registros[CC]>>29 & 1 == 1){ // C==1
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JC [%d]", registros[MBR]);
+            else
+                printf("\t | JC [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
 }
 void JV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    
+    if (registros[CC]>>28 & 1 == 1){ // V==1
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JV [%d]", registros[MBR]);
+            else
+                printf("\t | JV [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
 }
 void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    
+    if (registros[CC]>>30 == 0b10 || registros[CC]>>30 == 0b01 ){ // N o Z == 1
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JNP [%d]", registros[MBR]);
+            else
+                printf("\t | JNP [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
 }
 void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    
+    if (registros[CC]>>31 == 0 ){ // N == 0
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JNP [%d]", registros[MBR]);
+            else
+                printf("\t | JNP [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
 }
 void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    
+    if (registros[CC]>>30 & 1 == 0 ){ // Z == 0
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
+        if (flag){
+            printf("[%04X]", IPant);
+            for (int i = IPant; i < registros[IP]; i++){
+                printf("%02X", memoria[i]);
+            }
+            if (op1 >> 24 == 3)
+                printf("\t | JNP [%d]", registros[MBR]);
+            else
+                printf("\t | JNP [%s]", nomRegistro[op1 & 0x1F]);
+        }
+    }
 }
 
 void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
