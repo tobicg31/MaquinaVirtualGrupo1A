@@ -87,10 +87,10 @@ void main(int argc, char *argv[]){
     validar = validarDatos(arch, &tamCodigo); //ya me queda el puntero actualizado ?????????
     if (validar){
         inicializarTabla(tamCodigo);
+        int j=0;
 
         while (!feof(arch) || j<tamCodigo){
         fread(&dato, sizeof(dato),1,arch);
-        int j=0;
         memoria[j++] = dato;
         }
         fclose(arch);
@@ -141,7 +141,7 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
     int TopA=0;
     int opA, opB;
 
-    while (!errorSig && registros[OPC]!=0x0F){ //<----------------cambiar a un Do-while
+    while (!errorSig && registros[IP]!=-1){ //<----------------cambiar a un Do-while
         //memoria[IP] = 50 / 01010000
         //registro[opc] = 10000
 
@@ -149,7 +149,7 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
             TopB= (memoria[IP]>> 6)& 0xFF; // si es un operando de mas de 1 byte, como lo guardo
             switch (TopB){
                 case 2:
-                    opB = (memoria[IP+1] << 4) | memoria[IP+2;
+                    opB = (memoria[IP+1] << 4) | memoria[IP+2];
                     break;
                 case 3:
                     opB = ((memoria[IP+1] << 4) | memoria[IP+2]) << 4 | memoria[IP+3];
@@ -200,28 +200,61 @@ void Ejecucion(char memoria[MEMORIA], short int tabla[][8], int registros[REGIST
     }
 
 }
-int validarMemoria(char memoria[],short int tabla[][8],int op){
-    int segmento = op>>16; // preguntar cual es la direccion logica, que es lo que cargo en el LAR
 
-    int direccionfisica=tabla[segmento][0]+(op & 0xFF);
-    return dire
-}
 void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant){
     if (flag){
-        printf("[%04X]\tSTOP", IPant);
+        printf("[%04X] %02X\t | STOP", IPant, memoria[IPant]);
     }
     registros[IP]=-1;
 }
+void cargarLAR( int op,int registros[REGISTROS], short int tabla[2][8]){
+    registros[LAR] = tabla[(registros[op & 0x1F/*DS*/])>>16][0] | (op>>8);
+}
+int validoDirFisica(int op,int registros[REGISTROS], short int tabla[2][8]){
+    return (registros[MAR] & 0xFFFF < tabla[registros[LAR]>>16][1]) && (((registros[MAR]>>16)+registros[MAR] & 0xFFFF) < (registros[op & 0x1F/*DS*/]));
+}
+
 void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant){
-    if((op1>>24==3 && validarMemoria()) || op1>>24==1){
-        if (flag){
-            printf("[%04X]")
+    if(op1>>24==3){ //operando de memoria
+        //cargo en el LAR la direccion logica, reviso el cod de segmento:  
+        //registros[DS] = 00 01 00 00
+        if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+            cargarLAR(op1, registros, tabla); //guardo la dir logica
+
+            //en la parte del MAR cuantos bytes:
+            registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+            //traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
+            registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+            if( validoDirFisica(op1, registros, tabla) ){
+                //guardar en el MBR el valor:
+                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+            }
+            else
+                printf("FALLO DE SEGMENTO");   
+            registros[IP] = registros[MBR]; //hago el salto
+            if (flag){
+                printf("[%04X]", IPant);
+                for (int i = IPant; i < registros[IP]; i++){
+                    printf("%02X", memoria[i]);
+                }
+                printf("\t | JMP [%d]", registros[MBR]);
+                
+            }
+                
         }
-
+        else
+            printf("FALLO DE SEGMENTO");
     }
-
-
-
+    else{// operando de registro
+        registros[IP] = registros[op1 & 0x1F];
+        if (flag){
+                printf("[%04X]", IPant);
+                for (int i = IPant; i < registros[IP]; i++){
+                    printf("%02X", memoria[i]);
+                }
+                printf("\t | JMP [%s]", nomRegistro[op1 & 0x1F]); //podria haber un vector con los nombres d los registros
+            }
+    }
 }
 void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
 void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8]);
