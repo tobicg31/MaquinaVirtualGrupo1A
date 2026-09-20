@@ -33,7 +33,6 @@ void B(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void C(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void D(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void E(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
-void STOP(int, int, int, char, int, short int t, int,int IPant, char* nomRegistro[32]);
 void MOV(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void ADD(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void SUB(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
