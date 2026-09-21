@@ -25,20 +25,20 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
                 registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[IP] = registros[MBR]; //hago el salto
+                if (flag){
+                    printf("[%04X]:", IPant);
+                    for (int i = IPant; i < registros[IP]; i++){
+                        printf("%02X", memoria[i]);
+                    }
+                    printf("\t | JMP [%d]", registros[MBR]);
+                    
+                }
             }
             else{
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
                 return;
-            }
-            registros[IP] = registros[MBR]; //hago el salto
-            if (flag){
-                printf("[%04X]:", IPant);
-                for (int i = IPant; i < registros[IP]; i++){
-                    printf("%02X", memoria[i]);
-                }
-                printf("\t | JMP [%d]", registros[MBR]);
-                
             }
                 
         }
@@ -202,22 +202,22 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
                 registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                memoria[tabla[registros[DS]>>16][0]+registros[MBR]] = ~(memoria[tabla[registros[DS]>>16][0]+registros[MBR]]);
+                cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
+                if (flag){
+                    printf("[%04X]:", IPant);
+                    for (int i = IPant; i < registros[IP]; i++){
+                        printf("%02X", memoria[i]);
+                    }
+                    printf("\t | NOT [%d]", registros[MBR]);
+                    
+                }
             }
             else{
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
                 return;
             } 
-            memoria[tabla[registros[DS]>>16][0]+registros[MBR]] = ~(memoria[tabla[registros[DS]>>16][0]+registros[MBR]]);
-            cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
-            if (flag){
-                printf("[%04X]:", IPant);
-                for (int i = IPant; i < registros[IP]; i++){
-                    printf("%02X", memoria[i]);
-                }
-                printf("\t | NOT [%d]", registros[MBR]);
-                
-            }
                 
         }
         else{
@@ -398,7 +398,93 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     
 }
 void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    
+    if (op1>>24 == 3){//primer op de memoria
+        if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+            cargarLAR(op1, registros, tabla); //guardo la dir logica
+            //en la parte del MAR cuantos bytes:
+            registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+            //traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
+            registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+            if( validoDirFisica(op1, registros, tabla) ){
+                //guardar en el MbR el valor:
+                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                if (op2 >> 24 == 3){// segundo op de memoria
+                    int valorA = registros[MBR];
+
+                    if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+                        cargarLAR(op2, registros, tabla); //guardo la dir logica
+                        //en la parte del MAR cuantos bytes:
+                        registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+                        //traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
+                        registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+                        if( validoDirFisica(op2, registros, tabla) ){
+                            //guardar en el MbR el valor:
+                            registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                            memoria[tabla[registros[DS]>>16][0]+registros[valorA]] &= memoria[tabla[registros[DS]>>16][0]+registros[MBR]];
+                        }
+                        else{
+                            printf("FALLO DE SEGMENTO");
+                            registros[IP] = -1;
+                            return;
+                        } 
+                    }
+                    else{
+                        printf("FALLO DE SEGMENTO");
+                        registros[IP] = -1;
+                        return;
+                    }
+
+                }else if (op2 >> 24 == 1){//segundo op de registro
+                    memoria[tabla[registros[DS]>>16][0]+registros[MBR]] &= registros[op2 & 0x1F];
+                }else{//segundo op inmediato
+                    memoria[tabla[registros[DS]>>16][0]+registros[MBR]] &= (op2 & 0xFFFFFF); 
+                }
+            }
+            else{
+                printf("FALLO DE SEGMENTO");
+                registros[IP] = -1;
+                return;
+            } 
+        }
+        else{
+            printf("FALLO DE SEGMENTO");
+            registros[IP] = -1;
+            return;
+        }
+        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
+    }
+    else { //primer op de registro
+        if (op2 >> 24 == 3){// segundo op de memoria
+            if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+                cargarLAR(op2, registros, tabla); //guardo la dir logica
+                //en la parte del MAR cuantos bytes:
+                registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+                //traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
+                registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+                if( validoDirFisica(op2, registros, tabla) ){
+                    //guardar en el MbR el valor:
+                    registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                    registros[op1 & 0x1F] &= memoria[tabla[registros[DS]>>16][0]+registros[MBR]];
+                }
+                else{
+                    printf("FALLO DE SEGMENTO");
+                    registros[IP] = -1;
+                    return;
+                } 
+            }
+            else{
+                printf("FALLO DE SEGMENTO");
+                registros[IP] = -1;
+                return;
+            }
+
+        }else if (op2 >> 24 == 1){//segundo op de registro
+            registros[op1 & 0x1F] &= registros[op2 & 0x1F];
+        }else{//segundo op inmediato
+            registros[op1 & 0x1F] &= (op2 & 0xFFFFFF); 
+        }
+        cambiarCC(registros[op1 & 0x1F], registros);
+    }
 }
 void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
     

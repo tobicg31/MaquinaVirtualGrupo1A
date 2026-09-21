@@ -29,7 +29,7 @@ void JV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
 void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]);
 void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]);
 void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]);
-void NOT(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
+void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]);
 void B(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void C(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void D(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
@@ -39,7 +39,7 @@ void ADD(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32])
 void SUB(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void MUL(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void DIV(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
-void AND(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
+void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]);
 void OR(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void XOR(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void SWAP(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
