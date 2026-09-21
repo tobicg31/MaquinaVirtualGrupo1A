@@ -50,3 +50,4 @@ void LDL(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32])
 void LDH(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void RND(int, int, int, char, int, short int t,int IPant, char* nomRegistro[32]);
 void imprimir_binario(int valor, int tam_bytes);
+void cambiarCC(int valor, int registros[REGISTROS]);

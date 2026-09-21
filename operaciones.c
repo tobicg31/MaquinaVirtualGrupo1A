@@ -180,6 +180,14 @@ void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 
+void cambiarCC(int valor, int registros[REGISTROS]){
+    registros[CC] = 0;
+    if (valor < 0)
+        registros[CC] |= 1 << 31; 
+    else if (valor == 0)
+        registros[CC] |= 1 << 30;
+}
+
 void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
     if(op1>>24==3){ //operando de memoria
         //cargo en el LAR la direccion logica, reviso el cod de segmento:  
@@ -201,6 +209,7 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 return;
             } 
             memoria[tabla[registros[DS]>>16][0]+registros[MBR]] = ~(memoria[tabla[registros[DS]>>16][0]+registros[MBR]]);
+            cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
             if (flag){
                 printf("[%04X]:", IPant);
                 for (int i = IPant; i < registros[IP]; i++){
@@ -219,6 +228,7 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
     else{// operando de registro
         registros[op1 & 0x1F] = ~registros[op1 & 0x1F];
+        cambiarCC(registros[op1 & 0x1F], registros);
         if (flag){
                 printf("[%04X]:", IPant);
                 for (int i = IPant; i < registros[IP]; i++){
