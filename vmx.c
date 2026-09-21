@@ -16,7 +16,7 @@ void main(int argc, char *argv[]){
     short int tabla[2][8]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
     int registros[REGISTROS] = {0}; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
 
-    char* nomRegistro[31] = {"IP", "OPC", "OP1","OP2", "LAR", "MAR", "MBR", "nada", "nada", "nada", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "CS", "DS", "nada", "nada", "nada", "nada"};
+    char* nomRegistro[32] = {"IP", "OPC", "OP1","OP2", "LAR", "MAR", "MBR", "nada", "nada", "nada", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "CS", "DS", "nada", "nada", "nada", "nada"};
 
     if (argc >= 3)
         flag = strcmp(argv[2],"-d")==0;//argv[2]=="-d"; soy un boludo por dios
