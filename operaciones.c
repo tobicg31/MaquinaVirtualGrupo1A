@@ -748,7 +748,17 @@ void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
             printf("%02X", memoria[i]);
         }
         printf("\t SWAP ");
-        
+        if (op1>>24==3){
+            printf("[%d], ", op1>>8); //achequear
+        }else {
+            printf("%s, ", nomRegistro[op1 &0x1F]);
+        }
+        if (op2>>24==3)
+            printf("[%d]\n", registros[MBR]);
+        if(op2>>24==1)
+            printf("%s\n", nomRegistro[op2 &0x1F]);	
+        else
+            printf("%d\n", op2& 0xFFFFFF);
     }
 }
 void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
