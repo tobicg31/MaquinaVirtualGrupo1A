@@ -147,7 +147,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
 
 }
 void cargarLAR( int op,int registros[REGISTROS], short int tabla[2][8]){
-    registros[LAR] = tabla[(registros[op & 0x1F/*DS*/])>>16][0] | (op>>8);
+    registros[LAR] = tabla[(registros[op & 0x1F/*DS*/])>>16][0] | ((op>>8)&0xFFFFFF);
 }
 int validoDirFisica(int op,int registros[REGISTROS], short int tabla[2][8]){
     return (registros[MAR] & 0xFFFF < tabla[registros[LAR]>>16][1]) && (((registros[MAR]>>16)+registros[MAR] & 0xFFFF) < (registros[op & 0x1F/*DS*/]));
