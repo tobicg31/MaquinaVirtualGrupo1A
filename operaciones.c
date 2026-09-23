@@ -1168,7 +1168,6 @@ void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[IP] = -1;
             return;
         }
-        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
     }
     else { //primer op de registro
         if (flag)
@@ -1208,6 +1207,5 @@ void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (flag)
                 printf("%d\n", op2&0xFFFFFF);
         }
-        cambiarCC(registros[op1 & 0x1F], registros);
     }
 }
