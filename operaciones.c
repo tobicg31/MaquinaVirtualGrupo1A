@@ -12,12 +12,9 @@ void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
 }
 
 void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    if(op1>>24==3){ //operando de memoria
-        //cargo en el LAR la direccion logica, reviso el cod de segmento:  
-        //registros[DS] = 00 01 00 00
+    if (op1 >> 24 == 3){
         if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); //guardo la dir logica
-
             //en la parte del MAR cuantos bytes:
             registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
             //traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
@@ -25,40 +22,31 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
                 registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                if (flag)
+                    printf("[%d]", registros[MBR]);
 
                 registros[IP] = registros[MBR]; //hago el salto
-                if (flag){
-                    printf("[%04X]:", IPant);
-                    for (int i = IPant; i < registros[IP]; i++){
-                        printf("%02X", memoria[i]);
-                    }
-                    printf("\t | JMP [%d]", registros[MBR]);
-                    
-                }
-
             }
             else{
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
                 return;
-            }
-                
+            } 
         }
         else{
             printf("FALLO DE SEGMENTO");
             registros[IP] = -1;
             return;
         }
-    }
-    else{// operando de registro
+
+    }else if (op1 >> 24 == 1){//registro
         registros[IP] = registros[op1 & 0x1F];
-        if (flag){
-                printf("[%04X]:", IPant);
-                for (int i = IPant; i < registros[IP]; i++){
-                    printf("%02X", memoria[i]);
-                }
-                printf("\t | JMP [%s]", nomRegistro[op1 & 0x1F]); //podria haber un vector con los nombres d los registros
-            }
+        if (flag)
+            printf("%s\n", nomRegistro[op2 & 0x1F]);
+    }else{//segundo op inmediato
+        registros[IP] = ((op2 & 0xFFFFFF))&0xFFFF;
+        if (flag)
+            printf("%d\n", op2&0xFFFFFF);
     }
 }
 void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
@@ -167,7 +155,7 @@ void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>30 & 1 == 0 ){ // Z == 0
+    if ((registros[CC]>>30 & 1) == 0 ){ // Z == 0
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         if (flag){
             printf("[%04X]:", IPant);
@@ -191,12 +179,9 @@ void cambiarCC(int valor, int registros[REGISTROS]){
 }
 
 void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
-    if(op1>>24==3){ //operando de memoria
-        //cargo en el LAR la direccion logica, reviso el cod de segmento:  
-        //registros[DS] = 00 01 00 00
+    if (op1 >> 24 == 3){
         if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); //guardo la dir logica
-
             //en la parte del MAR cuantos bytes:
             registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
             //traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
@@ -204,40 +189,31 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
                 registros[MBR] = memoria[registros[MAR] & 0xFFFF];
-                memoria[tabla[registros[DS]>>16][0]+registros[MBR]] = ~(memoria[tabla[registros[DS]>>16][0]+registros[MBR]]);
-                cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
-                if (flag){
-                    printf("[%04X]:", IPant);
-                    for (int i = IPant; i < registros[IP]; i++){
-                        printf("%02X", memoria[i]);
-                    }
-                    printf("\t | NOT [%d]", registros[MBR]);
-                    
-                }
+                if (flag)
+                    printf("[%d]", registros[MBR]);
+
+                memoria[tabla[registros[DS]>>16][0]+registros[MBR]] ~= memoria[tabla[registros[DS]>>16][0]+registros[MBR]] ; 
             }
             else{
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
                 return;
             } 
-                
         }
         else{
             printf("FALLO DE SEGMENTO");
             registros[IP] = -1;
             return;
         }
-    }
-    else{// operando de registro
-        registros[op1 & 0x1F] = ~registros[op1 & 0x1F];
-        cambiarCC(registros[op1 & 0x1F], registros);
-        if (flag){
-                printf("[%04X]:", IPant);
-                for (int i = IPant; i < registros[IP]; i++){
-                    printf("%02X", memoria[i]);
-                }
-                printf("\t | NOT [%s]", nomRegistro[op1 & 0x1F]); 
-            }
+
+    }else if (op1 >> 24 == 1){//registro
+        registros[op1 & 0x1F] ~=registros[op1 & 0x1F];
+        if (flag)
+            printf("%s\n", nomRegistro[op2 & 0x1F]);
+    }else{//segundo op inmediato
+        memoria[tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF))&0xFFFF] ~= memoria[tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF))&0xFFFF] ; 
+        if (flag)
+            printf("%d\n", op2&0xFFFFFF);
     }
 }
 void b(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
