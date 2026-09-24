@@ -6,8 +6,6 @@
 int validarDatos(FILE * arch, short int *tamanoCodigo);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]);
-void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);
-int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]);
 
 void main(int argc, char *argv[]){
     int flag;
@@ -146,9 +144,4 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
     }while (!errorSig && registros[IP]!=-1);
 
 }
-void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]){
-    registros[LAR] = tabla[(registros[op & 0x1F/*DS*/])>>16][0] | ((op>>8)&0xFFFFFF);
-}
-int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]){
-    return (registros[MAR] & 0xFFFF < tabla[registros[LAR]>>16][1]) && (((registros[MAR]>>16)+registros[MAR] & 0xFFFF) < (registros[op & 0x1F/*DS*/]));
-}
+
