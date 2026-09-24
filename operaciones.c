@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], registros[MBR], char *funcion){
+void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], int registros[MBR], char *funcion){
 	if (flag){
         	printf("[%04X]:", IPant);
         	for (int i = IPant; i < registros[IP]; i++){
@@ -303,7 +303,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 }
 
                 printf("\n"); //bajo de linea por si tengo q escribir otro
-                
+
                 disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
             }
             else{
@@ -606,6 +606,63 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     cambiarCC(valor_fuente, registros);
     }
 }
+}
+
+void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
+    int valor_fuente = 0;
+
+    // 1. Obtener valor de la fuente (op2)
+    if (op2 >> 24 == 3) { // Memoria
+        if (tabla[(registros[op2 & 0x1F]) >> 16][0] != -1) {
+            cargarLAR(op2, registros, tabla);
+            registros[MAR] = 4 << 16;
+            registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
+            if (validoDirFisica(op2, registros, tabla)) {
+                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                valor_fuente = registros[MBR];
+            } else {
+                printf("FALLO DE SEGMENTO");
+                registros[IP] = -1;
+                return;
+            }
+        } else {
+            printf("FALLO DE SEGMENTO");
+            registros[IP] = -1;
+            return;
+        }
+    } else if (op2 >> 24 == 1) { // Registro
+        valor_fuente = registros[op2 & 0x1F];
+    } else { // Inmediato
+        valor_fuente = op2 & 0xFFFFFF;
+    }
+
+    // 2. Guardar en el destino (op1)
+    if (op1 >> 24 == 3) { // Memoria
+        if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1) {
+            cargarLAR(op1, registros, tabla);
+            registros[MAR] = 4 << 16;
+            registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
+            if (validoDirFisica(op1, registros, tabla)) {
+                registros[MBR] = valor_fuente; // simplificado a 1 byte o según corresponda
+                cambiarCC(memoria[(registros[LAR] & 0xFFFF)] - valor_fuente, registros);
+                disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "CMP");
+            } else {
+                printf("FALLO DE SEGMENTO");
+                registros[IP] = -1;
+                return;
+            }
+        } else {
+            printf("FALLO DE SEGMENTO");
+            registros[IP] = -1;
+            return;
+        }
+    } else if (op1 >> 24 == 1) { // Registro
+        cambiarCC(registros[op1 & 0x1F] - valor_fuente, registros);
+        disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "CMP");
+    }
+
+}
+
 void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
 
 
@@ -678,7 +735,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 if( validoDirFisica(op2, registros, tabla) ){
                     //guardar en el MbR el valor:
                     registros[MBR] = memoria[registros[MAR] & 0xFFFF];
-                    
+
                     registros[op1 & 0x1F] &= registros[MBR];
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "AND");
                 }

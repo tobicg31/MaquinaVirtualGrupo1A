@@ -4,7 +4,7 @@
 #include "operaciones.h"
 
 int validarDatos(FILE * arch, short int *tamanoCodigo);
-void inicializarTabla(short int tamCodigo, short int Tabla[][8]);
+void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[31]);
 void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);
 int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]);
@@ -66,7 +66,7 @@ int validarDatos(FILE * arch, short int *tamanioCodigo){ //preguntar
     return 0;
 }
 
-void inicializarTabla(short int tamCodigo, short int Tabla[][8]){ //inicializar tabla de segmentos
+void inicializarTabla(short int tamCodigo, short int Tabla[][2]){ //inicializar tabla de segmentos
     Tabla[0][0]=0;
     Tabla[0][1]=tamCodigo;
     Tabla[1][0]=tamCodigo;
@@ -82,7 +82,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
     registros[CS] = 0x00000000;
     registros[DS] = 0x00010000;
     registros[IP] = registros[CS];
-    void (*Operaciones[31])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[31]) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, B, C, D, E, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
+    void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, B, C, D, E, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
     int TopB=0;
     int TopA=0;

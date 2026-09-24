@@ -1,4 +1,4 @@
-#define MEMORIA 16834
+#define MEMORIA 16384
 #define REGISTROS 32
 #define IP 0
 #define OPC 1
@@ -6,7 +6,7 @@
 #define OP2 3
 #define LAR 4
 #define MAR 5
-#define MBR 7
+#define MBR 6
 #define EAX 10
 #define EBX 11
 #define ECX 12
@@ -39,6 +39,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
 void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
 void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
+void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]);
 void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
 void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
 void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
@@ -51,5 +52,5 @@ void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
 void imprimir_binario(int valor, int tam_bytes);
 void cambiarCC(int valor, int registros[REGISTROS]);
-void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], registros[MBR], char *funcion);
+void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], int registros[MBR], char *funcion);
 void imprimirOperando(int Top, char* nomRegistro[32], int registros[REGISTROS]);
