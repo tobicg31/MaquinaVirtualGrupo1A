@@ -192,7 +192,7 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 if (flag)
                     printf("[%d]", registros[MBR]);
 
-                memoria[tabla[registros[DS]>>16][0]+registros[MBR]] ~= memoria[tabla[registros[DS]>>16][0]+registros[MBR]] ; 
+                memoria[memoria[registros[MAR]&0xFFFF]] = ~registros[MBR] ; 
             }
             else{
                 printf("FALLO DE SEGMENTO");
@@ -207,11 +207,11 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
 
     }else if (op1 >> 24 == 1){//registro
-        registros[op1 & 0x1F] ~=registros[op1 & 0x1F];
+        registros[op1 & 0x1F] =~registros[op1 & 0x1F];
         if (flag)
             printf("%s\n", nomRegistro[op2 & 0x1F]);
     }else{//segundo op inmediato
-        memoria[tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF))&0xFFFF] ~= memoria[tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF))&0xFFFF] ; 
+        memoria[tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF))&0xFFFF] = ~(memoria[tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF))&0xFFFF]) ; 
         if (flag)
             printf("%d\n", op2&0xFFFFFF);
     }
