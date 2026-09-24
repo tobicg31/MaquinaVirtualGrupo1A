@@ -5,7 +5,7 @@
 
 int validarDatos(FILE * arch, short int *tamanoCodigo);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[31]);
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]);
 void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);
 int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]);
 
@@ -76,7 +76,7 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]){ //inicializar 
             Tabla[j][i] = -1;
 }
 
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[31]){
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]){
     int errorSig;
 
     registros[CS] = 0x00000000;
