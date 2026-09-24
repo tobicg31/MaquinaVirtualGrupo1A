@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #define MEMORIA 16384
+=======
+#define MEMORIA 16834
+>>>>>>> 2c846ad68f4b6d04e2993a4acc64187da871c396
 #define REGISTROS 32
 #define IP 0
 #define OPC 1
@@ -6,7 +10,11 @@
 #define OP2 3
 #define LAR 4
 #define MAR 5
+<<<<<<< HEAD
 #define MBR 6
+=======
+#define MBR 7
+>>>>>>> 2c846ad68f4b6d04e2993a4acc64187da871c396
 #define EAX 10
 #define EBX 11
 #define ECX 12
