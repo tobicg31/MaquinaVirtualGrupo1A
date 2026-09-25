@@ -28,7 +28,7 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int
         	printf("\t | %s ", funcion);
             switch(tOp){
                 case 0:
-                printf(" %02X \tSTOP", (unsigned char)memoria[IPant]);
+                printf("\n");
                 break;
                 case 1:
                 imprimirOperando(tOp,op1, nomRegistro, registros);
@@ -293,7 +293,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 registros[MAR] = (tamanio << 16)|(dirfis_actual&0xFFFF); //tamaño y direccion fisica de elemento a guardar
                 int valor = 0;
                 for (int byte = 0; byte < tamanio; byte++) {
-                    valor = (valor << 8) | (unsigned char)memoria[dirfis_actual + byte]; //unsigned para q no interprete negativos para asi poder unir bits
+                    valor = (valor << 8) | memoria[dirfis_actual + byte]; //unsigned para q no interprete negativos para asi poder unir bits
                 }
                 registros[MBR] = valor;
 
@@ -438,7 +438,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 valor_destino = registros[MBR];              
-                memoria[(registros[LAR] & 0xFFFF)] += valor_fuente; // simplificado a 1 byte o según corresponda
+                memoria[(registros[MAR] & 0xFFFF)] += valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "ADD");
             } else {
                 printf("FALLO DE SEGMENTO esto falla ?????");
@@ -504,8 +504,8 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] = 4 << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
-                valor_destino=memoria[(registros[LAR] & 0xFFFF)];
-                memoria[(registros[LAR] & 0xFFFF)] -= valor_fuente; // simplificado a 1 byte o según corresponda
+                valor_destino=memoria[(registros[MAR] & 0xFFFF)];
+                memoria[(registros[MAR] & 0xFFFF)] -= valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SUB");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -571,7 +571,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 valor_destino = memoria[(registros[LAR] & 0xFFFF)];
-                memoria[(registros[LAR] & 0xFFFF)] *= valor_fuente; // simplificado a 1 byte o según corresponda
+                memoria[(registros[MAR] & 0xFFFF)] *= valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "MUL");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -643,7 +643,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 valor_destino = memoria[(registros[LAR] & 0xFFFF)];
-                memoria[(registros[LAR] & 0xFFFF)] /= valor_fuente;
+                memoria[(registros[MAR] & 0xFFFF)] /= valor_fuente;
                 registros[AC] %= valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "DIV");
             } else {
@@ -1136,13 +1136,6 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     uint64_t clonsinsigno;
     clonconsigno=clonsinsigno=0;
 
-    if (flag){
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < registros[IP]; i++){
-            printf("%02X", memoria[i]);
-        }
-        printf("\t SHL ");
-    }
 
     if (op1>>24 == 3){//primer op de memoria
         if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
@@ -1155,8 +1148,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 //guardar en el MBR el valor:
                 registros[MBR] =memoria[registros[MAR] & 0xFFFF];
                 direfisopa=registros[MAR] & 0xFFFF;
-                if(flag)
-                    printf("[%d], ", registros[MBR]);
+
                 if (op2 >> 24 == 3){// segundo op de memoria
                     
                     clonconsigno|=registros[MBR];clonsinsigno|=(unsigned int)registros[MBR];
@@ -1172,8 +1164,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             //guardar en el MBR el valor:
                             registros[MBR] = memoria[registros[MAR] & 0xFFFF];
                             int acarreo=0; int desbordamiento=0;
-                            if (flag)
-                                printf("[%d]", registros[MBR]);
+
                              
                             for (i=1;i<=+registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                              primerbit=memoria[direfisopa]>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
@@ -1191,7 +1182,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                              registros[CC]|=1<<28;
                             }
 
-                            registros[CC]|=(memoria[direfisopa]<0)<<31;//NEGATIVO?
+                            registros[CC]|=((signed char)memoria[direfisopa]<0)<<31;//NEGATIVO?
                             registros[CC]|=(memoria[direfisopa]==0)<<30;//CERO?
                         }
                         else{
@@ -1261,8 +1252,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
     else { //primer op de registro
         clonconsigno=registros[op1&0X1F];clonsinsigno=(unsigned int)registros[op1&0X1F];
-        if (flag)
-            printf("%s, ", nomRegistro[op1 & 0x1F]);
+
         if (op2 >> 24 == 3){// segundo op de memoria
             if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); //guardo la dir logica
@@ -1273,8 +1263,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 if( validoDirFisica(op2, registros, tabla) ){
                     //guardar en el MBR el valor:
                     registros[MBR] = memoria[registros[MAR] & 0xFFFF]; direfisopb=registros[MAR] & 0xFFFF;
-                    if (flag)
-                        printf("[%d]\n", registros[MBR]);
+
                     // registros[op1 & 0x1F] (primer operando)
                         
                             for (i=1;i<=registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
@@ -1341,6 +1330,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
                             registros[CC]|=(registros[op1 & 0x1F]==0)<<30;//CERO?
+                            disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SHL");
                             
         }
     }
@@ -1350,13 +1340,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
      int i,direfisopa,direfisopb;
      uint64_t clonsinsigno;
      clonsinsigno=0;//en SHR no hay overflow
-    if (flag){
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < registros[IP]; i++){
-            printf("%02X", memoria[i]);
-        }
-        printf("\t SHL ");
-    }
+
 
     if (op1>>24 == 3){//primer op de memoria
         if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
@@ -1369,8 +1353,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 //guardar en el MBR el valor:
                 registros[MBR] = memoria[registros[MAR] & 0xFFFF];
                 direfisopa=registros[MAR] & 0xFFFF;
-                if(flag)
-                    printf("[%d], ", registros[MBR]);
+
                 if (op2 >> 24 == 3){// segundo op de memoria
                     int valorA = registros[MBR];
 
@@ -1383,8 +1366,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                         if( validoDirFisica(op2, registros, tabla) ){
                             //guardar en el MBR el valor:
                             registros[MBR] = memoria[registros[MAR] & 0xFFFF];
-                            if (flag)
-                                printf("[%d]", registros[MBR]);
+
                              
                             for (i=1;i<=+registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift  
                              memoria[direfisopa]>>=1;
@@ -1456,8 +1438,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
     else { //primer op de registro
         clonsinsigno=registros[op1&0X1F];
-        if (flag)
-            printf("%s, ", nomRegistro[op1 & 0x1F]);
+
         if (op2 >> 24 == 3){// segundo op de memoria
             if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); //guardo la dir logica
@@ -1468,8 +1449,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 if( validoDirFisica(op2, registros, tabla) ){
                     //guardar en el MBR el valor:
                     registros[MBR] = memoria[registros[MAR] & 0xFFFF]; direfisopb=registros[MAR] & 0xFFFF;
-                    if (flag)
-                        printf("[%d]\n", registros[MBR]);
+
                     // registros[op1 & 0x1F] (primer operando)
                      
                             for (i=1;i<=registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
@@ -1509,8 +1489,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
                             registros[CC]|=(registros[op1 & 0x1F]==0)<<30;//CERO?
-            if (flag)
-                printf("%s\n", nomRegistro[op2 & 0x1F]);
+
         }else{//segundo op inmediato
              
                             for (i=1;i<=(op2 & 0xFFFFFF);i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
@@ -1525,8 +1504,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
                             registros[CC]|=(registros[op1 & 0x1F]==0)<<30;//CERO?
                             disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SHL");
-            if (flag)
-                printf("%d\n", op2&0xFFFFFF);
+
         }
     }
 }
@@ -1534,13 +1512,6 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
      int i,direfisopa,direfisopb,bitdesigno;
      uint64_t clonsinsigno;
      clonsinsigno=0;//en SHR no hay overflow
-    if (flag){
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < registros[IP]; i++){
-            printf("%02X", memoria[i]);
-        }
-        printf("\t SHL ");
-    }
 
     if (op1>>24 == 3){//primer op de memoria
         if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
@@ -1554,8 +1525,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 registros[MBR] = memoria[registros[MAR] & 0xFFFF];
                 direfisopa=registros[MAR] & 0xFFFF;
                 bitdesigno=memoria[direfisopa]>>31;
-                if(flag)
-                    printf("[%d], ", registros[MBR]);
+
                 if (op2 >> 24 == 3){// segundo op de memoria
                     int valorA = registros[MBR];
 
@@ -1568,8 +1538,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                         if( validoDirFisica(op2, registros, tabla) ){
                             //guardar en el MBR el valor:
                             registros[MBR] = memoria[registros[MAR] & 0xFFFF];
-                            if (flag)
-                                printf("[%d]", registros[MBR]);
+ 
                              
                             for (i=1;i<=+registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift  
                             memoria[direfisopa]>>=1;memoria[direfisopa]|=bitdesigno<<31;
@@ -1609,8 +1578,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             registros[CC]|=(memoria[direfisopa]<0)<<31;//NEGATIVO?
                             registros[CC]|=(memoria[direfisopa]==0)<<30;//CERO?
-                    if (flag)
-                        printf("%s\n", nomRegistro[op2 & 0x1F]);
+
                 }else{//segundo op inmediato
                      
                             for (i=1;i<=(op2 & 0xFFFFFF);i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
@@ -1624,8 +1592,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             registros[CC]|=(memoria[direfisopa]<0)<<31;//NEGATIVO?
                             registros[CC]|=(memoria[direfisopa]==0)<<30;//CERO?
-                    if (flag)
-                        printf("%d\n", op2&0xFFFFFF);
+
                 }
             }
             else{
@@ -1643,8 +1610,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     else { //primer op de registro
         clonsinsigno=registros[op1&0X1F];
         bitdesigno=registros[op1&0X1F]>>31;
-        if (flag)
-            printf("%s, ", nomRegistro[op1 & 0x1F]);
+
         if (op2 >> 24 == 3){// segundo op de memoria
             if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); //guardo la dir logica
@@ -1655,8 +1621,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 if( validoDirFisica(op2, registros, tabla) ){
                     //guardar en el MBR el valor:
                     registros[MBR] = memoria[registros[MAR] & 0xFFFF]; direfisopb=registros[MAR] & 0xFFFF;
-                    if (flag)
-                        printf("[%d]\n", registros[MBR]);
+
                     // registros[op1 & 0x1F] (primer operando)
                      
                             for (i=1;i<=registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift

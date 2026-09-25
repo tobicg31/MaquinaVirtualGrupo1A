@@ -131,7 +131,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
             // me parece que no hace falta verificar esto)
         }
         else{
-            if ((memoria[registros[IP]] >> 5) & 0x07  == 0x000){
+            if (((memoria[registros[IP]] >> 5) & 0x07 ) == 0x000){
                 TopA=0;
             }
             else{ //1 solo operando

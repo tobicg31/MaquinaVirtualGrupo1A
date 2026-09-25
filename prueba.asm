@@ -1,8 +1,10 @@
-	mov ac, 4
-	shl ac, 1
-	mov edx, ac
+otro:	mov [0], 0
+	add [0], 1
+	mov edx, ds 
+	ldh ecx, 1
 	ldl ecx, 1
-	ldh ecx, 4
 	mov eax, 1
 	sys 2
+	cmp [0], 10
+	jz otro
 	stop
