@@ -1483,7 +1483,190 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+     int i,direfisopa,direfisopb,bitdesigno;
+     uint64_t clonsinsigno;
+     clonsinsigno=0;//en SHR no hay overflow
+    if (flag){
+        printf("[%04X]:", IPant);
+        for (int i = IPant; i < registros[IP]; i++){
+            printf("%02X", memoria[i]);
+        }
+        printf("\t SHL ");
+    }
 
+    if (op1>>24 == 3){//primer op de memoria
+        if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+            cargarLAR(op1, registros, tabla); //guardo la dir logica
+            //en la parte del MAR cuantos bytes:
+            registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+            //traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
+            registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+            if( validoDirFisica(op1, registros, tabla) ){
+                //guardar en el MBR el valor:
+                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                direfisopa=registros[MAR] & 0xFFFF;
+                bitdesigno=memoria[direfisopa]>>31;
+                if(flag)
+                    printf("[%d], ", registros[MBR]);
+                if (op2 >> 24 == 3){// segundo op de memoria
+                    int valorA = registros[MBR];
+
+                    if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+                        cargarLAR(op2, registros, tabla); //guardo la dir logica
+                        //en la parte del MAR cuantos bytes:
+                        registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+                        //traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
+                        registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+                        if( validoDirFisica(op2, registros, tabla) ){
+                            //guardar en el MBR el valor:
+                            registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                            if (flag)
+                                printf("[%d]", registros[MBR]);
+                             
+                            for (i=1;i<=+registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift  
+                            memoria[direfisopa]>>=1;memoria[direfisopa]|=bitdesigno<<31;
+                            clonsinsigno>>=1;
+                            }
+
+                            registros[CC]=0; //limpio CC
+                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                                registros[CC]|=1<<29;
+                            }
+                            
+                            registros[CC]|=(memoria[direfisopa]<0)<<31;//NEGATIVO?
+                            registros[CC]|=(memoria[direfisopa]==0)<<30;//CERO?
+                        }
+                        else{
+                            printf("FALLO DE SEGMENTO");
+                            registros[IP] = -1;
+                            return;
+                        }
+                    }
+                    else{
+                        printf("FALLO DE SEGMENTO");
+                        registros[IP] = -1;
+                        return;
+                    }
+
+                }else if (op2 >> 24 == 1){//segundo op de registro
+
+                     
+                            for (i=1;i<=registros[op2&0x1F];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+                             memoria[direfisopa]>>=1;memoria[direfisopa]|=bitdesigno<<31;
+                             clonsinsigno>>=1;
+                            }
+                            registros[CC]=0; //limpio CC
+                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                                registros[CC]|=1<<29;
+                            }
+                            registros[CC]|=(memoria[direfisopa]<0)<<31;//NEGATIVO?
+                            registros[CC]|=(memoria[direfisopa]==0)<<30;//CERO?
+                    if (flag)
+                        printf("%s\n", nomRegistro[op2 & 0x1F]);
+                }else{//segundo op inmediato
+                     
+                            for (i=1;i<=(op2 & 0xFFFFFF);i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+                              
+                             memoria[direfisopa]>>=1;memoria[direfisopa]|=bitdesigno<<31;
+                             clonsinsigno>>=1;
+                            }
+                            registros[CC]=0; //limpio CC
+                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                                registros[CC]|=1<<29;
+                            }
+                            registros[CC]|=(memoria[direfisopa]<0)<<31;//NEGATIVO?
+                            registros[CC]|=(memoria[direfisopa]==0)<<30;//CERO?
+                    if (flag)
+                        printf("%d\n", op2&0xFFFFFF);
+                }
+            }
+            else{
+                printf("FALLO DE SEGMENTO");
+                registros[IP] = -1;
+                return;
+            }
+        }
+        else{
+            printf("FALLO DE SEGMENTO");
+            registros[IP] = -1;
+            return;
+        }
+    }
+    else { //primer op de registro
+        clonsinsigno=registros[op1&0X1F];
+        bitdesigno=registros[op1&0X1F]>>31;
+        if (flag)
+            printf("%s, ", nomRegistro[op1 & 0x1F]);
+        if (op2 >> 24 == 3){// segundo op de memoria
+            if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+                cargarLAR(op2, registros, tabla); //guardo la dir logica
+                //en la parte del MAR cuantos bytes:
+                registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+                //traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
+                registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+                if( validoDirFisica(op2, registros, tabla) ){
+                    //guardar en el MBR el valor:
+                    registros[MBR] = memoria[registros[MAR] & 0xFFFF]; direfisopb=registros[MAR] & 0xFFFF;
+                    if (flag)
+                        printf("[%d]\n", registros[MBR]);
+                    // registros[op1 & 0x1F] (primer operando)
+                     
+                            for (i=1;i<=registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+                             
+                            registros[op1 & 0x1F]>>=1;registros[op1 & 0x1F]|=bitdesigno<<31;
+                            clonsinsigno>>=1;
+                            }
+                            registros[CC]=0; //limpio CC
+                            if((clonsinsigno&0XFFFFFFFF)|0){
+                            registros[CC]|=1<<29;
+                            }
+                            registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
+                            registros[CC]|=(registros[op1 & 0x1F]==0)<<30;//CERO?
+
+                }
+                else{
+                    printf("FALLO DE SEGMENTO");
+                    registros[IP] = -1;
+                    return;
+                }
+            }
+            else{
+                printf("FALLO DE SEGMENTO");
+                registros[IP] = -1;
+                return;
+            }
+
+        }else if (op2 >> 24 == 1){//segundo op de registro
+              
+                            for (i=1;i<=registros[op2 & 0x1F];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+                            registros[op1 & 0x1F]>>=1;registros[op1 & 0x1F]|=bitdesigno<<31;
+                            clonsinsigno>>=1;
+                            }
+                            registros[CC]=0; //limpio CC
+                            if((clonsinsigno&0XFFFFFFFF)|0){
+                                registros[CC]|=1<<29;
+                            }
+                            registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
+                            registros[CC]|=(registros[op1 & 0x1F]==0)<<30;//CERO?
+            if (flag)
+                printf("%s\n", nomRegistro[op2 & 0x1F]);
+        }else{//segundo op inmediato
+             
+                            for (i=1;i<=(op2 & 0xFFFFFF);i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+                             registros[op1 & 0x1F]>>=1;registros[op1 & 0x1F]|=bitdesigno<<31;
+                             clonsinsigno>>=1;
+
+                            }
+                            registros[CC]=0; //limpio CC
+                            if((clonsinsigno&0XFFFFFFFF)|0){
+                                registros[CC]|=1<<29;
+                            }
+                            registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
+                            registros[CC]|=(registros[op1 & 0x1F]==0)<<30;//CERO?
+            if (flag)
+                printf("%d\n", op2&0xFFFFFF);
+        }
+    }
 }
 void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
 
