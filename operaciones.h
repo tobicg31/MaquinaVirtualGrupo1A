@@ -1,3 +1,4 @@
+#include <stdint.h>
 #define MEMORIA 16384
 #define REGISTROS 32
 #define IP 0
@@ -51,7 +52,7 @@ void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
 void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]);
 void imprimir_binario(int valor, int tam_bytes);
-void cambiarCC(int valor, int registros[REGISTROS]);
+void cambiarCC(int32_t valor, int carry, int overflow, int registros[REGISTROS]);
 void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], int registros[MBR], char *funcion);
 void imprimirOperando(int ,int op, char* nomRegistro[32], int registros[REGISTROS]);
 void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);

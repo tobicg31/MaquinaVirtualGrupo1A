@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdint.h>
 
 void cargarLAR(int op, int registros[REGISTROS], short int tabla[8][2]){
     int base = registros[op & 0x1F];         // puntero base: segmento(16) + offset(16)
@@ -150,7 +151,7 @@ void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 
-void cambiarCC(int32_t valor, int carry, int overflow, int registros[REGISTROS], ){
+void cambiarCC(int32_t valor, int carry, int overflow, int registros[REGISTROS]){
     registros[CC] = 0;
     if (valor < 0)
         registros[CC] |= 1 << 31;
@@ -399,17 +400,9 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 }
 
 
-void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
+void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
     int32_t valor_fuente=0;
     int32_t valor_destino=0;
-
-    if (flag){
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < registros[IP]; i++){
-            printf("%02X", memoria[i]);
-        }
-        printf("\t ADD ");
-    }
 
 
     // 1. Obtener valor de la fuente (op2)
@@ -471,20 +464,12 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 }
 
 
-void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
+void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
    int32_t valor_fuente = 0;
    int32_t valor_destino = 0;
    int64_t res_signed;
    uint64_t res_unsigned;
    int32_t resultado_32;
-    if (flag){
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < registros[IP]; i++){
-            printf("%02X", memoria[i]);
-        }
-        printf("\t SUB ");
-    }
-
     
 
     // 1. Obtener valor de la fuente (op2)
@@ -545,19 +530,13 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     cambiarCC(resultado_32, carry, overflow, registros);
 }
 
-void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
+void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
    int32_t valor_fuente = 0;
    int32_t valor_destino = 0;
    int64_t res_signed;
    uint64_t res_unsigned;
    int32_t resultado_32;
-    if (flag){
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < registros[IP]; i++){
-            printf("%02X", memoria[i]);
-        }
-        printf("\t MUL ");
-    }
+
 
     // 1. Obtener valor de la fuente (op2)
     if (op2 >> 24 == 3) { // Memoria
@@ -618,19 +597,12 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 }
 
 
-void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
+void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
    int32_t valor_fuente = 0;
    int32_t valor_destino = 0;
    int64_t res_signed;
    uint64_t res_unsigned;
    int32_t resultado_32;
-    if (flag){
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < registros[IP]; i++){
-            printf("%02X", memoria[i]);
-        }
-        printf("\t DIV ");
-    }
 
 
 
@@ -733,7 +705,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 registros[MBR] = valor_fuente; // simplificado a 1 byte o según corresponda
-                cambiarCC(memoria[(registros[MAR] & 0xFFFF)] - valor_fuente, registros);
+                cambiarCC(memoria[(registros[MAR] & 0xFFFF)] - valor_fuente,0,0, registros);
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "CMP");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -746,7 +718,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             return;
         }
     } else if (op1 >> 24 == 1) { // Registro
-        cambiarCC(registros[op1 & 0x1F] - valor_fuente, registros);
+        cambiarCC(registros[op1 & 0x1F] - valor_fuente,0,0, registros);
         disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "CMP");
     }
 
@@ -811,7 +783,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[IP] = -1;
             return;
         }
-        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
+        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]],0,0, registros);
     }
     else { //primer op de registro
         if (op2 >> 24 == 3){// segundo op de memoria
@@ -847,7 +819,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[op1 & 0x1F] &= (op2 & 0xFFFFFF);
             disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "AND");
         }
-        cambiarCC(registros[op1 & 0x1F], registros);
+        cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
     }
 }
 void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
@@ -909,7 +881,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
             registros[IP] = -1;
             return;
         }
-        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
+        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], 0, 0, registros);
     }
     else { //primer op de registro
         if (op2 >> 24 == 3){// segundo op de memoria
@@ -944,7 +916,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
             registros[op1 & 0x1F] |= (op2 & 0xFFFFFF);
             disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "OR");
         }
-        cambiarCC(registros[op1 & 0x1F], registros);
+        cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
     }
 }
 void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
@@ -1006,7 +978,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[IP] = -1;
             return;
         }
-        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
+        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], 0, 0, registros);
     }
     else { //primer op de registro
         if (op2 >> 24 == 3){// segundo op de memoria
@@ -1041,7 +1013,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[op1 & 0x1F] ^= (op2 & 0xFFFFFF);
             disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "XOR");
         }
-        cambiarCC(registros[op1 & 0x1F], registros);
+        cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
     }
 }
 void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
@@ -1112,7 +1084,7 @@ void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
             registros[IP] = -1;
             return;
         }
-        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], registros);
+        cambiarCC(memoria[tabla[registros[DS]>>16][0]+registros[MBR]], 0, 0, registros);
     }
     else { //primer op de registro
         if (op2 >> 24 == 3){// segundo op de memoria
@@ -1155,7 +1127,7 @@ void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
             registros[op1 & 0x1F] ^= opb;
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SWAP");
         }
-        cambiarCC(registros[op1 & 0x1F], registros);
+        cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
     }
 }
 void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
