@@ -73,16 +73,16 @@ int validarDatos(FILE *arch, short int *tamanioCodigo){
     return 0;
 }
 
-void inicializarTabla(short int tamCodigo, short int Tabla[][2]){ //inicializar tabla de segmentos
-    Tabla[0][0]=0;
-    Tabla[0][1]=tamCodigo;
-    Tabla[1][0]=tamCodigo;
-    Tabla[1][1]=MEMORIA-tamCodigo;
-    for (int j=0; j<=1;j++)
-        for(int i=2;i<=7;i++)
-            Tabla[j][i] = -1;
+void inicializarTabla(short int tamCodigo, short int Tabla[][2]){
+    Tabla[0][0] = 0;
+    Tabla[0][1] = tamCodigo;
+    Tabla[1][0] = tamCodigo;
+    Tabla[1][1] = MEMORIA - tamCodigo;
+    for (int i = 2; i <= 7; i++){
+        Tabla[i][0] = -1;
+        Tabla[i][1] = -1;
+    }
 }
-
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]){
     int errorSig;
 

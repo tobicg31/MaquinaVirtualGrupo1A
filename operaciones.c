@@ -3,13 +3,20 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]){
-    registros[LAR] = tabla[(registros[op & 0x1F/*DS*/])>>16][0] | ((op>>8)&0xFFFFFF);
-}
-int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]){
-    return (registros[MAR] & 0xFFFF < tabla[registros[LAR]>>16][1]) && (((registros[MAR]>>16)+registros[MAR] & 0xFFFF) < (registros[op & 0x1F/*DS*/]));
+void cargarLAR(int op, int registros[REGISTROS], short int tabla[8][2]){
+    int base = registros[op & 0x1F];         // puntero base: segmento(16) + offset(16)
+    int segmento = (base >> 16) & 0xFFFF;
+    int offsetBase = base & 0xFFFF;
+    int desplazamiento = (op >> 8) & 0xFFFF; // el offset codificado en la instruccion
+    registros[LAR] = (segmento << 16) | ((offsetBase + desplazamiento) & 0xFFFF);
 }
 
+int validoDirFisica(int op, int registros[REGISTROS], short int tabla[8][2]){
+    int segmento = registros[LAR] >> 16;
+    int offset = registros[LAR] & 0xFFFF;
+    int tamanio = registros[MAR] >> 16;
+    return (offset + tamanio) <= tabla[segmento][1];
+}
 
 void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], int registros[MBR], char *funcion){
 	if (flag){
@@ -44,8 +51,10 @@ void imprimirOperando(int Top,int op, char* nomRegistro[32], int registros[REGIS
         case 2:
             printf("%d", (short int)(op & 0xFFFFFF));
         break;
-        case 3:
-            printf("[%d]", registros[Top] & 0xFFFF);
+        case 3: 
+            int reg = op & 0x1F;                        // código del registro
+            short int offset = (short int)((op >> 8) & 0xFFFF); // desplazamiento codificado
+            printf("[%s+%d]", nomRegistro[reg], offset);
         break;
     }
 }
@@ -205,7 +214,8 @@ void imprimir_binario(int valor, int tam_bytes) {
     }
 }
 void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    int tiposys = op1 & 0xFFFF;
+    int tiposys = (short int)op1 & 0xFFFF;
+
 
     int tamanio=(registros[ECX]>>16)&0XFFFF;
     int dirlog=registros[EDX];//desde donde parto
@@ -215,8 +225,9 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     int dirfis=tabla[segment][0];
     int cantidad=registros[ECX]&0XFFFF;/*cantidad de elementos a leer\escribir*/
     int i;
-    if (tiposys==0x1){
+    if (tiposys==1){
         for (i=0;i<cantidad;i++){
+            printf("ahora esto me tiene que pedir escribir\n");
             int offset_actual = offset + (i * tamanio);
             if(offset_actual+tamanio<=tabla[segment][1]){ //valido dir fisica
                int dirfis_actual= dirfis + offset_actual;
@@ -361,7 +372,7 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 registros[MBR] = valor_fuente;
-                memoria[(registros[LAR] & 0xFFFF)] = valor_fuente; // simplificado a 1 byte o según corresponda
+                memoria[(registros[MAR] & 0xFFFF)] = valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "MOV");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -396,12 +407,12 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 registros[MBR] = memoria[registros[MAR] & 0xFFFF];
                 valor_fuente = registros[MBR];
             } else {
-                printf("FALLO DE SEGMENTO");
+                printf("FALLO DE SEGMENTO falla esto?");
                 registros[IP] = -1;
                 return;
             }
         } else {
-            printf("FALLO DE SEGMENTO");
+            printf("FALLO DE SEGMENTO falla o esto");
             registros[IP] = -1;
             return;
         }
@@ -419,15 +430,15 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 registros[MBR] = valor_fuente;
-                memoria[(registros[LAR] & 0xFFFF)] += valor_fuente; // simplificado a 1 byte o según corresponda
+                memoria[(registros[MAR] & 0xFFFF)] += valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "ADD");
             } else {
-                printf("FALLO DE SEGMENTO");
+                printf("FALLO DE SEGMENTO esto falla ?????");
                 registros[IP] = -1;
                 return;
             }
         } else {
-            printf("FALLO DE SEGMENTO");
+            printf("FALLO DE SEGMENTO tiene que ser esto ");
             registros[IP] = -1;
             return;
         }
@@ -476,7 +487,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 registros[MBR] = valor_fuente;
-                memoria[(registros[LAR] & 0xFFFF)] -= valor_fuente; // simplificado a 1 byte o según corresponda
+                memoria[(registros[MAR] & 0xFFFF)] -= valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SUB");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -532,7 +543,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 registros[MBR] = valor_fuente;
-                memoria[(registros[LAR] & 0xFFFF)] *= valor_fuente; // simplificado a 1 byte o según corresponda
+                memoria[(registros[MAR] & 0xFFFF)] *= valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "MUL");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -594,7 +605,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 registros[MBR] = valor_fuente;
-                memoria[(registros[LAR] & 0xFFFF)] /= valor_fuente;
+                memoria[(registros[MAR] & 0xFFFF)] /= valor_fuente;
                 registros[AC] %= valor_fuente; // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "DIV");
             } else {
@@ -654,7 +665,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 registros[MBR] = valor_fuente; // simplificado a 1 byte o según corresponda
-                cambiarCC(memoria[(registros[LAR] & 0xFFFF)] - valor_fuente, registros);
+                cambiarCC(memoria[(registros[MAR] & 0xFFFF)] - valor_fuente, registros);
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "CMP");
             } else {
                 printf("FALLO DE SEGMENTO");
