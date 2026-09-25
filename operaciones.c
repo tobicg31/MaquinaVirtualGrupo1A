@@ -170,12 +170,18 @@ void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 
-void cambiarCC(int valor, int registros[REGISTROS]){
+void cambiarCC(int32_t valor, int carry, int overflow, int registros[REGISTROS], ){
     registros[CC] = 0;
     if (valor < 0)
         registros[CC] |= 1 << 31;
     else if (valor == 0)
         registros[CC] |= 1 << 30;
+    if (carry) {
+        registros[CC] |= (1 << 29);
+    }
+    if (overflow) {
+        registros[CC] |= (1 << 28);
+    }
 }
 
 void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
@@ -419,11 +425,14 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         registros[op1 & 0x1F] = valor_fuente;
     }
 
-    cambiarCC(valor_fuente, registros); // MOV afecta al registro CC[cite: 4]
+    cambiarCC(valor_fuente, 0, 0, registros); // MOV afecta al registro CC[cite: 4]
 }
 
 
 void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
+    int32_t valor_fuente=0;
+    int32_t valor_destino=0;
+
     if (flag){
         printf("[%04X]:", IPant);
         for (int i = IPant; i < registros[IP]; i++){
@@ -432,7 +441,6 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         printf("\t ADD ");
     }
 
-    int valor_fuente = 0;
 
     // 1. Obtener valor de la fuente (op2)
     if (op2 >> 24 == 3) { // Memoria
@@ -466,7 +474,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] = 4 << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
-                registros[MBR] = valor_fuente;
+                valor_destino = registros[MBR];              
                 memoria[(registros[LAR] & 0xFFFF)] += valor_fuente; // simplificado a 1 byte o según corresponda
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -479,15 +487,26 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             return;
         }
     } else if (op1 >> 24 == 1) { // Registro
+        valor_destino = registros[op1 & 0x1F];
         registros[op1 & 0x1F] += valor_fuente;
+        
     }
+   int64_t res_signed = (int64_t)valor_destino + (int64_t)valor_fuente;
+   uint64_t res_unsigned = (uint64_t)(uint32_t)valor_destino + (uint64_t)(uint32_t)valor_fuente;
+   int carry = (res_unsigned > 0xFFFFFFFF) ? 1 : 0;
+   int overflow = (res_signed > 2147483647 || res_signed < -2147483648) ? 1 : 0;
 
-    cambiarCC(valor_fuente, registros); // MOV afecta al registro CC[cite: 4]
+    cambiarCC((int32_t)res_signed, carry, overflow, registros); // 
 }
 
 
 void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
-   if (flag){
+   int32_t valor_fuente = 0;
+   int32_t valor_destino = 0;
+   int64_t res_signed;
+   uint64_t res_unsigned;
+   int32_t resultado_32;
+    if (flag){
         printf("[%04X]:", IPant);
         for (int i = IPant; i < registros[IP]; i++){
             printf("%02X", memoria[i]);
@@ -495,7 +514,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         printf("\t SUB ");
     }
 
-    int valor_fuente = 0;
+    
 
     // 1. Obtener valor de la fuente (op2)
     if (op2 >> 24 == 3) { // Memoria
@@ -529,7 +548,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] = 4 << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
-                registros[MBR] = valor_fuente;
+                valor_destino=memoria[(registros[LAR] & 0xFFFF)];
                 memoria[(registros[LAR] & 0xFFFF)] -= valor_fuente; // simplificado a 1 byte o según corresponda
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -542,22 +561,30 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             return;
         }
     } else if (op1 >> 24 == 1) { // Registro
+        valor_destino = registros[op1 & 0x1F] ;
         registros[op1 & 0x1F] -= valor_fuente;
     }
-
-    cambiarCC(valor_fuente, registros);
+   res_signed = (int64_t)valor_destino - (int64_t)valor_fuente;
+   res_unsigned = (uint64_t)(uint32_t)valor_destino - (uint64_t)(uint32_t)valor_fuente;
+   int carry = (res_unsigned > 0xFFFFFFFF) ? 1 : 0;
+   int overflow = (res_signed > 2147483647 || res_signed < -2147483648) ? 1 : 0;
+   resultado_32 = (int32_t)res_signed;
+    cambiarCC(resultado_32, carry, overflow, registros);
 }
 
 void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
-   if (flag){
+   int32_t valor_fuente = 0;
+   int32_t valor_destino = 0;
+   int64_t res_signed;
+   uint64_t res_unsigned;
+   int32_t resultado_32;
+    if (flag){
         printf("[%04X]:", IPant);
         for (int i = IPant; i < registros[IP]; i++){
             printf("%02X", memoria[i]);
         }
         printf("\t MUL ");
     }
-
-    int valor_fuente = 0;
 
     // 1. Obtener valor de la fuente (op2)
     if (op2 >> 24 == 3) { // Memoria
@@ -591,7 +618,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] = 4 << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
-                registros[MBR] = valor_fuente;
+                valor_destino = memoria[(registros[LAR] & 0xFFFF)];
                 memoria[(registros[LAR] & 0xFFFF)] *= valor_fuente; // simplificado a 1 byte o según corresponda
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -604,14 +631,24 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             return;
         }
     } else if (op1 >> 24 == 1) { // Registro
+        valor_destino = registros[op1 & 0x1F];
         registros[op1 & 0x1F] *= valor_fuente;
     }
-
-    cambiarCC(valor_fuente, registros);
+   res_signed = (int64_t)valor_destino * (int64_t)valor_fuente;
+   res_unsigned = (uint64_t)(uint32_t)valor_destino * (uint64_t)(uint32_t)valor_fuente;
+   int carry = (res_unsigned > 0xFFFFFFFF) ? 1 : 0;
+   int overflow = (res_signed > 2147483647 || res_signed < -2147483648) ? 1 : 0;
+   resultado_32 = (int32_t)res_signed;
+    cambiarCC(resultado_32, carry, overflow, registros);
 }
 
 
 void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8], int IPant, char* nomRegistro[32]){
+   int32_t valor_fuente = 0;
+   int32_t valor_destino = 0;
+   int64_t res_signed;
+   uint64_t res_unsigned;
+   int32_t resultado_32;
     if (flag){
         printf("[%04X]:", IPant);
         for (int i = IPant; i < registros[IP]; i++){
@@ -620,7 +657,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         printf("\t DIV ");
     }
 
-    int valor_fuente = 0;
+
 
     // 1. Obtener valor de la fuente (op2)
     if (op2 >> 24 == 3) { // Memoria
@@ -658,7 +695,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] = 4 << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
-                registros[MBR] = valor_fuente;
+                valor_destino = memoria[(registros[LAR] & 0xFFFF)];
                 memoria[(registros[LAR] & 0xFFFF)] /= valor_fuente;
                 registros[AC] %= valor_fuente; // simplificado a 1 byte o según corresponda
             } else {
@@ -672,11 +709,13 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             return;
         }
     } else if (op1 >> 24 == 1) { // Registro
+        valor_destino = registros[op1 & 0x1F];
         registros[op1 & 0x1F] /= valor_fuente;
         registros[AC] %= valor_fuente;
     }
-
-    cambiarCC(valor_fuente, registros);
+    resultado_32 = valor_destino / valor_fuente;
+   cambiarCC(resultado_32, 0, 0, registros);
+    
     }
 }
 void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[2][8],int IPant, char* nomRegistro[32]){
