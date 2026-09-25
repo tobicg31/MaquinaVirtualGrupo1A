@@ -53,6 +53,6 @@ void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 void imprimir_binario(int valor, int tam_bytes);
 void cambiarCC(int valor, int registros[REGISTROS]);
 void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], int registros[MBR], char *funcion);
-void imprimirOperando(int Top, char* nomRegistro[32], int registros[REGISTROS]);
+void imprimirOperando(int ,int op, char* nomRegistro[32], int registros[REGISTROS]);
 void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);
 int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]);

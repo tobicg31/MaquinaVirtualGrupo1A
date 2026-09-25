@@ -21,7 +21,7 @@ void main(int argc, char *argv[]){
     else
         flag = 0;
 
-    printf("nombre archivo:%s \n dissassembler:%d", argv[1], flag);
+    printf("nombre archivo:%s \n dissassembler:%d \n", argv[1], flag);
 
     FILE * arch = fopen(argv[1], "rb");
 
@@ -35,7 +35,7 @@ void main(int argc, char *argv[]){
         inicializarTabla(tamCodigo, tabla);
         int j=0;
 
-        while (!feof(arch) || j<tamCodigo){
+        while (j<tamCodigo){
         fread(&dato, sizeof(dato),1,arch);
         memoria[j++] = dato;
         }
@@ -48,19 +48,28 @@ void main(int argc, char *argv[]){
     }
 }
 
-int validarDatos(FILE * arch, short int *tamanioCodigo){ //preguntar
-    char dato[5]; int version;
+int validarDatos(FILE *arch, short int *tamanioCodigo){
+    char dato;
+    char version;
+    char datos[6];
 
-    fread(dato, sizeof(dato), 1, arch);
+    for (int i = 0; i < 5; i++){
+        fread(&dato, sizeof(dato), 1, arch);
+        datos[i] = dato;
+    }
+    datos[5] = '\0'; // terminador para que strcmp sea seguro
 
-    if (strncmp(dato,"VMX26",5)==0){
+    printf("%s \n", datos);
+
+    if (strcmp(datos, "VMX26") == 0){
         fread(&version, sizeof(version), 1, arch);
-        if (version ==1 ){
-            fread(tamanioCodigo, sizeof(tamanioCodigo),1,arch);
+        if (version == 1){
+            fread(tamanioCodigo, sizeof(*tamanioCodigo), 1, arch); // antes: sizeof(tamanioCodigo)
             return 1;
         }
     }
-    *tamanioCodigo =-1;
+
+    *tamanioCodigo = -1;
     return 0;
 }
 
@@ -82,49 +91,65 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
     registros[IP] = registros[CS];
     void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, B, C, D, E, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
-    int TopB=0;
-    int TopA=0;
-    int opA, opB;
     int IPant;
-
+    
     do{ //<----------------cambiar a un Do-while
+        int TopB=0;
+        int TopA=0;
+        int opA=0, opB=0;
         //memoria[IP] = 50 / 01010000
         //registro[opc] = 10000
+        //printf("La ip es:%d \n", registros[IP]);
         registros[OPC] = memoria[(registros[IP])] & 0x1F; // me guardo los 5 bits del codigo de operacio
         errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
 
         if ((memoria[registros[IP]] >> 4)& 1){ //2 operandos
-            TopB= (memoria[IP]>> 6)& 0xFF; // si es un operando de mas de 1 byte, como lo guardo
+            TopB= (memoria[registros[IP]]>> 6)& 0x03; // si es un operando de mas de 1 byte, como lo guardo
             switch (TopB){
+                case 1:
+                    opB = (unsigned char) memoria[registros[IP]+1];
+                    break;
                 case 2:
-                    opB = (memoria[IP+1] << 4) | memoria[IP+2];
+                    opB = ((unsigned char) memoria[registros[IP]+1] << 8) | (unsigned char) memoria[registros[IP]+2];
                     break;
                 case 3:
-                    opB = ((memoria[IP+1] << 4) | memoria[IP+2]) << 4 | memoria[IP+3];
+                    opB = (((unsigned char) memoria[registros[IP]+1] << 8) |(unsigned char) memoria[registros[IP]+2]) << 8 |(unsigned char) memoria[registros[IP]+3];
                     break;
                 default:
-                    opB = memoria[IP+1];
+                    opB = 0;
                     break;
             }
-            TopA= (memoria[IP] >> 4)& 0xFF;
-            if (TopA == 3) // el tipo de operando de A solo puede ser 1 o 3
-                opA = ((memoria[IP+TopB+1] << 4) | memoria[IP+TopB+2]) << 4 | memoria[IP+TopB+3];
+            TopA= (memoria[registros[IP]] >> 4)& 0x03;
+            if (TopA == 3)
+                opA = (((unsigned char) memoria[registros[IP]+TopB+1] << 8) |
+                        (unsigned char) memoria[registros[IP]+TopB+2]) << 8 |
+                    (unsigned char) memoria[registros[IP]+TopB+3];
             else
-                opB = memoria[IP+TopB+1];
+                opA = (unsigned char) memoria[registros[IP]+TopB+1];
             //analizo pesos y tipos funcion aparte
             //reviso que no me caiga del CS registros if (memoria[IP]+tamanoopA+tamanoB es mewnor a tamanocodigo
             // me parece que no hace falta verificar esto)
         }
         else{
-            if ((memoria[registros[IP]] >> 5) & 0xFFF  == 0x000){
+            if ((memoria[registros[IP]] >> 5) & 0x07  == 0x000){
                 TopA=0;
             }
             else{ //1 solo operando
-                TopA= (memoria[IP] >> 4)& 0xFF;
-                if (TopA == 3) // el operando A solo puede ser 1 o 3
-                    opA = ((memoria[IP+TopB+1] << 4) | memoria[IP+TopB+2]) << 4 | memoria[IP+TopB+3];
-                else
-                    opB = memoria[IP+TopB+1];
+                TopA= (memoria[registros[IP]] >> 6)& 0x03;
+                switch (TopA){
+                    case 1:
+                        opA = (unsigned char) memoria[registros[IP] + 1];
+                        break;
+                    case 2:
+                        opA = ((unsigned char) memoria[registros[IP] + 1] << 8) | (unsigned char) memoria[registros[IP] + 2];
+                        break;
+                    case 3:
+                        opA = (((unsigned char) memoria[registros[IP] + 1] << 8) | (unsigned char) memoria[registros[IP] + 2]) << 8 | (unsigned char) memoria[registros[IP] + 3];
+                        break;
+                    default:
+                        opA = 0;
+                        break;
+                }
             }
         }
 
@@ -135,8 +160,9 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
 
         IPant = registros[IP];
 
-        registros[IP] = 1+TopB+TopA;
+        registros[IP] += 1+TopB+TopA;
 
+        //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro);
 
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]

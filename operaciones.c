@@ -15,33 +15,34 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int
 	if (flag){
         	printf("[%04X]:", IPant);
         	for (int i = IPant; i < registros[IP]; i++){
-            		printf("%02X", memoria[i]);
+            		printf("%02X ", (unsigned char)memoria[i]);
         	}
         	printf("\t | %s ", funcion);
             switch(tOp){
                 case 0:
-                printf(" %02X \t STOP", memoria[IPant]);
+                printf(" %02X \tSTOP", (unsigned char)memoria[IPant]);
                 break;
                 case 1:
-                imprimirOperando(op1>>24, nomRegistro, registros);
+                imprimirOperando(tOp,op1, nomRegistro, registros);
                 printf("\n");
                 break;
                 case 2:
-                imprimirOperando(op1>>24, nomRegistro, registros);
-                imprimirOperando(op2>>24, nomRegistro, registros);
+                imprimirOperando(tOp,op1, nomRegistro, registros);
+                printf(",");
+                imprimirOperando(tOp,op2, nomRegistro, registros);
                 printf("\n");
                 break;
             }
     }
 }
 
-void imprimirOperando(int Top, char* nomRegistro[32], int registros[REGISTROS]){
-    switch(Top){
+void imprimirOperando(int Top,int op, char* nomRegistro[32], int registros[REGISTROS]){
+    switch(op>>24){
         case 1:
-            printf("%s", nomRegistro[registros[Top] & 0x1F]);
+            printf("%s", nomRegistro[op & 0x1F]);
         break;
         case 2:
-            printf("%d", registros[Top] & 0xFFFFFF);
+            printf("%d", (short int)(op & 0xFFFFFF));
         break;
         case 3:
             printf("[%d]", registros[Top] & 0xFFFF);
@@ -86,7 +87,7 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JMP");
 
     }else{//segundo op inmediato
-        registros[IP] = ((op2 & 0xFFFFFF))&0xFFFF;
+        registros[IP] = ((op1 & 0xFFFFFF))&0xFFFF;
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JMP");
 
     }
@@ -182,7 +183,7 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "NOT");
     }
 }
-void b(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+void B(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
     printf("funcion vacia");
 
 }
@@ -190,7 +191,7 @@ void C(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTRO
 printf("funcion vacia");
 }
 void D(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-printf("funcion vacia");
+printf("funcion vacia  d");
 }
 void E(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
 printf("funcion vacia");
@@ -251,18 +252,18 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 }
                  //guardar en el MBR el valor:
                 registros[MBR] = datoleido;
-                disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
                 for (int byte = 0; byte < tamanio; byte++) { //iteracion que guarda el (tipo de dato)valor del dato en memoria
                     memoria[dirfis_actual + byte] = (datoleido >> (8 * (tamanio - 1 - byte))/*Calcula cuántos bits hay que desplazar valor_leido hacia la derecha para bajar el byte deseado*/) & 0xFF /*un byte*/;
                 }
             }
             else{
-                printf("FALLO DE SEGMENTO");
+                printf("FALLO DE SEGMENTO fallo sys");
                 registros[IP] = -1;
                 return;
             }
         }
-
+        
+        disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
     }
     else{ //WRITE
       for (i=0;i<cantidad;i++){
@@ -313,15 +314,15 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 
                 printf("\n"); //bajo de linea por si tengo q escribir otro
 
-                disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
             }
             else{
-             printf("FALLO DE SEGMENTO");
-             registros[IP] = -1;
-             return;
+                printf("FALLO DE SEGMENTO");
+                registros[IP] = -1;
+                return;
             }
-
-    }
+            
+        }
+        disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
     }
 }
 void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
@@ -635,7 +636,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 return;
             }
         } else {
-            printf("FALLO DE SEGMENTO");
+            printf("FALLO DE SEGMENTO estp");
             registros[IP] = -1;
             return;
         }
@@ -1013,9 +1014,11 @@ void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
                     memoria[registros[MAR] & 0xFFFF] ^= registros[op2 & 0x1F];
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SWAP");
                 }else{//segundo op inmediato
-                    memoria[registros[MAR] & 0xFFFF] ^= (op2 & 0xFFFFFF);
-                    (op2 & 0xFFFFFF)  ^= memoria[registros[MAR] & 0xFFFF];
-                    memoria[registros[MAR] & 0xFFFF] ^= (op2 & 0xFFFFFF);
+                    int opb = (op2 & 0xFFFFFF);
+
+                    memoria[registros[MAR] & 0xFFFF] ^= opb;
+                    opb  ^= memoria[registros[MAR] & 0xFFFF];
+                    memoria[registros[MAR] & 0xFFFF] ^= opb;
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SWAP");
                 }
             }
@@ -1067,9 +1070,10 @@ void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
             registros[op1 & 0x1F] ^= registros[op2 & 0x1F];
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SWAP");
         }else{//segundo op inmediato
-            registros[op1 & 0x1F] ^= (op2 & 0xFFFFFF);
-            (op2 & 0xFFFFFF)  ^= registros[op1 & 0x1F];
-            registros[op1 & 0x1F] ^= (op2 & 0xFFFFFF);
+            int opb= (op2 & 0xFFFFFF);
+            registros[op1 & 0x1F] ^= opb;
+            opb  ^= registros[op1 & 0x1F];
+            registros[op1 & 0x1F] ^= opb;
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SWAP");
         }
         cambiarCC(registros[op1 & 0x1F], registros);
