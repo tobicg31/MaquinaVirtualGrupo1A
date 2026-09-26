@@ -1,6 +1,7 @@
 	mov [0], 0
-	ldl [0], 0xFFFB
-	ldh [0], 0xFFFF
+	ldh [0], 0x7FFF
+	ldl [0], 0xFFFF
+	shl [0], 1
 	mov edx, ds
 	ldl ecx, 1
 	ldh ecx, 4
