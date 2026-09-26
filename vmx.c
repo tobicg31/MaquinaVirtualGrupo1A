@@ -21,7 +21,6 @@ void main(int argc, char *argv[]){
     else
         flag = 0;
 
-    printf("nombre archivo:%s \n dissassembler:%d \n", argv[1], flag);
 
     FILE * arch = fopen(argv[1], "rb");
 
