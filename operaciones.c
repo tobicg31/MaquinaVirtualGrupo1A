@@ -194,6 +194,8 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 //guardar en el MbR el valor:
                 registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
                 escribirMemoria32(memoria,registros[MAR] & 0xFFFF,~registros[MBR]);
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
+                escribirMemoria32(memoria,registros[MAR] & 0xFFFF,~registros[MBR]);
                 disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "NOT");
             }
             else{
