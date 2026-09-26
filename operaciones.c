@@ -64,7 +64,8 @@ void imprimirOperando(int Top,int op, char* nomRegistro[32], int registros[REGIS
             printf("%s", nomRegistro[op & 0x1F]);
         break;
         case 2:
-            printf("%d",(op & 0xFFFFFF));
+        short int inmediato = (short int)(op & 0xFFFF);
+        printf("%d", inmediato);
         break;
         case 3: 
             int reg = op & 0x1F;                        // código del registro
@@ -321,6 +322,14 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 for (int byte = 0; byte < tamanio; byte++) {
                     valor = (valor << 8) | (unsigned char)memoria[dirfis_actual + byte]; //unsigned para q no interprete negativos para asi poder unir bits
                 }
+                // Sign-extend según la cantidad de bytes leídos
+                if (tamanio < 4) {
+                    int bits = tamanio * 8;
+                    int signBit = 1 << (bits - 1);
+                    if (valor & signBit) {
+                        valor -= (1 << bits);
+                    }
+                }
                 registros[MBR] = valor;
 
                 // 1. Imprime dirección física (4 dígitos hexadecimales)
@@ -394,7 +403,8 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     } else if (op2 >> 24 == 1) { // Registro
         valor_fuente = registros[op2 & 0x1F];
     } else { // Inmediato
-        valor_fuente = op2 & 0xFFFFFF;
+        short int inmediato16 = (short int)(op2 & 0xFFFF);
+        valor_fuente = (int)inmediato16;
     }
 
     // 2. Guardar en el destino (op1)

@@ -1,9 +1,18 @@
-	mov [0], 0
-	ldh [0], 0x4000
-	shl [0], 2
-	mov edx, ds
-	ldl ecx, 1
-	ldh ecx, 4
-	mov eax, 1
-	sys 2
-	stop
+MOV     EBX,    1
+shl     EBX,    31
+MOV     [0],    EBX
+MOV     [4],    CC
+MOV     EDX,    DS
+ADD     EDX,    0
+LDH     ECX,    4
+LDL     ECX,    1
+MOV     EAX,    1
+SYS     0x2
+MOV     EDX,    DS
+ADD     EDX,    4
+LDH     ECX,    4
+LDL     ECX,    1
+MOV     EAX,    0x10
+SYS     0x2
+
+STOP
