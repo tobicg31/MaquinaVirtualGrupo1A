@@ -12,7 +12,7 @@ MOV     EDX,    DS
 ADD     EDX,    4
 LDH     ECX,    4
 LDL     ECX,    1
-MOV     EAX,    0x10
+MOV     EAX,    0x18
 SYS     0x2
 
 STOP

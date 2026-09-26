@@ -238,7 +238,10 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
 
         //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro);
-       // printf("el valor del cc es:%x \n", registros[CC]);
+        //printf("el valor del cc es:%x \n", registros[CC]);
+        printf("el valor del cc es:");
+        imprimir_binario(registros[CC], 4);
+        printf("\n");
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
 
     }while (!errorSig && registros[IP]!=-1);
