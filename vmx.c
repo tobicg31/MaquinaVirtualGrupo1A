@@ -6,6 +6,73 @@
 int validarDatos(FILE * arch, short int *tamanoCodigo);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]);
+void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32]) {
+    int ip = 0;
+    int registros_dummy[REGISTROS] = {0}; // Solo para satisfacer el parámetro de imprimirOperando
+    
+    // Mapeo exacto de los Opcodes a String (en el mismo orden que tu arreglo Operaciones)
+    char* mnemonicos[32] = {"SYS", "JMP", "JP", "JN", "JZ", "JC", "JV", "JNP", "JNN", "JNZ", 
+                            "NOT", "B", "C", "D", "E", "STOP", "MOV", "ADD", "SUB", "MUL", 
+                            "DIV", "CMP", "AND", "OR", "XOR", "SWAP", "SHL", "SHR", "SAR", 
+                            "LDL", "LDH", "RND"};
+
+    while (ip < tamCodigo) {
+        int IPant = ip;
+        int opc = memoria[ip] & 0x1F;
+        int TopA = 0, TopB = 0;
+        int opA = 0, opB = 0;
+        int cant_operandos = 0;
+
+        // 1. Decodificar la instrucción
+        if ((memoria[ip] >> 4) & 1) { // 2 operandos
+            cant_operandos = 2;
+            TopB = (memoria[ip] >> 6) & 0x03;
+            switch (TopB) {
+                case 1: opB = (unsigned char)memoria[ip+1]; break;
+                case 2: opB = ((unsigned char)memoria[ip+1] << 8) | (unsigned char)memoria[ip+2]; break;
+                case 3: opB = (((unsigned char)memoria[ip+1] << 8) | (unsigned char)memoria[ip+2]) << 8 | (unsigned char)memoria[ip+3]; break;
+            }
+            TopA = (memoria[ip] >> 4) & 0x03;
+            if (TopA == 3)
+                opA = (((unsigned char)memoria[ip+TopB+1] << 8) | (unsigned char)memoria[ip+TopB+2]) << 8 | (unsigned char)memoria[ip+TopB+3];
+            else
+                opA = (unsigned char)memoria[ip+TopB+1];
+
+            ip += 1 + TopB + TopA;
+        } else {
+            if (((memoria[ip] >> 5) & 0x07) == 0x000) {
+                cant_operandos = 0; // Sin operandos
+                ip += 1;
+            } else { // 1 operando
+                cant_operandos = 1;
+                TopA = (memoria[ip] >> 6) & 0x03;
+                switch (TopA) {
+                    case 1: opA = (unsigned char)memoria[ip+1]; break;
+                    case 2: opA = ((unsigned char)memoria[ip+1] << 8) | (unsigned char)memoria[ip+2]; break;
+                    case 3: opA = (((unsigned char)memoria[ip+1] << 8) | (unsigned char)memoria[ip+2]) << 8 | (unsigned char)memoria[ip+3]; break;
+                }
+                ip += 1 + TopA;
+            }
+        }
+
+        // 2. Imprimir bytes Hexadecimales
+        printf("[%04X]:", IPant);
+        for (int i = IPant; i < ip; i++) {
+            printf("%02X ", (unsigned char)memoria[i]);
+        }
+        printf("\t | %s ", mnemonicos[opc]);
+
+        // 3. Imprimir operandos usando tu función de operaciones.c
+        if (cant_operandos == 1) {
+            imprimirOperando(cant_operandos, (TopA << 24) | opA, nomRegistro, registros_dummy);
+        } else if (cant_operandos == 2) {
+            imprimirOperando(cant_operandos, (TopA << 24) | opA, nomRegistro, registros_dummy);
+            printf(", ");
+            imprimirOperando(cant_operandos, (TopB << 24) | opB, nomRegistro, registros_dummy);
+        }
+        printf("\n");
+    }
+}
 
 void main(int argc, char *argv[]){
     int flag;
@@ -39,7 +106,12 @@ void main(int argc, char *argv[]){
         memoria[j++] = dato;
         }
         fclose(arch);
-        Ejecucion(flag, memoria, registros, tabla, nomRegistro);
+
+        if(flag){  
+            DesensamblarEstatico(memoria, tamCodigo, nomRegistro);
+        }
+            
+        Ejecucion(0, memoria, registros, tabla, nomRegistro);
 
     }
     else {

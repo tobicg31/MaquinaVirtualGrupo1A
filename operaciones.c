@@ -414,7 +414,6 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] = 4 << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
-                registros[MBR] = valor_fuente;
                 escribirMemoria32(memoria, registros[MAR] & 0xFFFF, valor_fuente); // simplificado a 1 byte o según corresponda
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "MOV");
             } else {
