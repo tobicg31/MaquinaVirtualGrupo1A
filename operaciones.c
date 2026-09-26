@@ -75,8 +75,8 @@ void imprimirOperando(int Top,int op, char* nomRegistro[32], int registros[REGIS
 }
 
 void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
-    registros[IP]=-1;
     disassembler(flag, 0, 0, 0, nomRegistro, IPant, memoria, registros, "STOP");
+    registros[IP]=-1;
 }
 
 void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
