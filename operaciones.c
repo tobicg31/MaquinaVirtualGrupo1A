@@ -1105,11 +1105,11 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 //guardar en el MBR el valor:
                 registros[MBR] =memoria[registros[MAR] & 0xFFFF];
                 direfisopa=registros[MAR] & 0xFFFF;
+                clonconsigno|=registros[MBR];clonsinsigno|=(unsigned int)registros[MBR];
                 if(flag)
                     printf("[%d], ", registros[MBR]);
                 if (op2 >> 24 == 3){// segundo op de memoria
                     
-                    clonconsigno|=registros[MBR];clonsinsigno|=(unsigned int)registros[MBR];
                     int valorA = registros[MBR];
 
                     if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
@@ -1125,7 +1125,6 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                                 printf("[%d]", registros[MBR]);
                              
                             for (i=1;i<=+registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
-                             primerbit=memoria[direfisopa]>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
                              memoria[direfisopa]<<=1;
                              clonsinsigno<<=1;
                              clonconsigno<<=1;
