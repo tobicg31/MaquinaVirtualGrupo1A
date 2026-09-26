@@ -5,5 +5,5 @@
 	ldl ecx, 1
 	ldh ecx, 4
 	mov eax, 1
-	sys 2
+	sys 1
 	stop

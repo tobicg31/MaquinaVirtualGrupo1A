@@ -8,9 +8,9 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]);
 void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32]) {
     int ip = 0;
-    int registros_dummy[REGISTROS] = {0}; // Solo para satisfacer el parámetro de imprimirOperando
+    int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
     
-    // Mapeo exacto de los Opcodes a String (en el mismo orden que tu arreglo Operaciones)
+    // Mapeo exacto de los Opcodes a String
     char* mnemonicos[32] = {"SYS", "JMP", "JP", "JN", "JZ", "JC", "JV", "JNP", "JNN", "JNZ", 
                             "NOT", "B", "C", "D", "E", "STOP", "MOV", "ADD", "SUB", "MUL", 
                             "DIV", "CMP", "AND", "OR", "XOR", "SWAP", "SHL", "SHR", "SAR", 
@@ -55,25 +55,16 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
             }
         }
 
-        // 2. Imprimir bytes Hexadecimales
-        printf("[%04X]:", IPant);
-        for (int i = IPant; i < ip; i++) {
-            printf("%02X ", (unsigned char)memoria[i]);
-        }
-        printf("\t | %s ", mnemonicos[opc]);
+        // 2. Preparar registros_dummy y armar operandos consolidados
+        registros_dummy[IP] = ip; // Le decimos al disassembler hasta qué byte debe imprimir
+        
+        int op1_completo = (cant_operandos > 0) ? (TopA << 24) | opA : 0;
+        int op2_completo = (cant_operandos == 2) ? (TopB << 24) | opB : 0;
 
-        // 3. Imprimir operandos usando tu función de operaciones.c
-        if (cant_operandos == 1) {
-            imprimirOperando(cant_operandos, (TopA << 24) | opA, nomRegistro, registros_dummy);
-        } else if (cant_operandos == 2) {
-            imprimirOperando(cant_operandos, (TopA << 24) | opA, nomRegistro, registros_dummy);
-            printf(", ");
-            imprimirOperando(cant_operandos, (TopB << 24) | opB, nomRegistro, registros_dummy);
-        }
-        printf("\n");
+        // 3. Llamar a la función existente (forzando flag=1 para que imprima)
+        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc]);
     }
 }
-
 void main(int argc, char *argv[]){
     int flag;
 
