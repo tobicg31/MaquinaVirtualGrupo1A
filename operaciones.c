@@ -1091,7 +1091,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         for (int i = IPant; i < registros[IP]; i++){
             printf("%02X", memoria[i]);
         }
-        printf("\t SHL ");
+        printf("\t | SHL ");
     }
 
     if (op1>>24 == 3){//primer op de memoria
@@ -1307,7 +1307,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         for (int i = IPant; i < registros[IP]; i++){
             printf("%02X", memoria[i]);
         }
-        printf("\t SHL ");
+        printf("\t | SHR ");
     }
 
     if (op1>>24 == 3){//primer op de memoria
@@ -1491,7 +1491,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         for (int i = IPant; i < registros[IP]; i++){
             printf("%02X", memoria[i]);
         }
-        printf("\t SHL ");
+        printf("\t | SAR ");
     }
 
     if (op1>>24 == 3){//primer op de memoria
