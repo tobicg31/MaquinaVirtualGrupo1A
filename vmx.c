@@ -64,7 +64,10 @@ int validarDatos(FILE *arch, short int *tamanioCodigo){
     if (strcmp(datos, "VMX26") == 0){
         fread(&version, sizeof(version), 1, arch);
         if (version == 1){
-            fread(tamanioCodigo, sizeof(*tamanioCodigo), 1, arch); // antes: sizeof(tamanioCodigo)
+            unsigned char byteAlto, byteBajo;
+            fread(&byteAlto, 1, 1, arch);
+            fread(&byteBajo, 1, 1, arch);
+            *tamanioCodigo = (short int)((byteAlto << 8) | byteBajo); // antes: sizeof(tamanioCodigo)
             return 1;
         }
     }
@@ -164,7 +167,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
 
         //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro);
-
+        printf("el valor del cc es:%x \n", registros[CC]);
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
 
     }while (!errorSig && registros[IP]!=-1);

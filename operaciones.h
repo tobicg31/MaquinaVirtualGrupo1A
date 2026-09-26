@@ -57,3 +57,5 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int
 void imprimirOperando(int ,int op, char* nomRegistro[32], int registros[REGISTROS]);
 void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);
 int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]);
+int32_t leerMemoria32(char memoria[MEMORIA], int dir);
+void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor);
