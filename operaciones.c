@@ -64,17 +64,7 @@ void imprimirOperando(int Top,int op, char* nomRegistro[32], int registros[REGIS
             printf("%s", nomRegistro[op & 0x1F]);
         break;
         case 2:
-            int inmediato = op & 0xFFFFFF;
-            
-            // Si es un número negativo codificado en 16 bits (rango 0x8000 a 0xFFFF)
-            if (inmediato >= 0x8000 && inmediato <= 0xFFFF) { 
-                inmediato = (short int)inmediato; // Extiende el signo a 32 bits
-            } 
-            // Si es un número negativo codificado en 24 bits (rango 0x800000 a 0xFFFFFF)
-            else if (inmediato >= 0x800000) {
-                inmediato |= 0xFF000000; // Enciende el byte superior para hacerlo negativo en C
-            }
-            
+            short int inmediato = (short int)(op & 0xFFFF);
             printf("%d", inmediato);
         break;
         case 3: 
@@ -332,6 +322,14 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 for (int byte = 0; byte < tamanio; byte++) {
                     valor = (valor << 8) | (unsigned char)memoria[dirfis_actual + byte]; //unsigned para q no interprete negativos para asi poder unir bits
                 }
+                // Sign-extend según la cantidad de bytes leídos
+                if (tamanio < 4) {
+                    int bits = tamanio * 8;
+                    int signBit = 1 << (bits - 1);
+                    if (valor & signBit) {
+                        valor -= (1 << bits);
+                    }
+                }
                 registros[MBR] = valor;
 
                 // 1. Imprime dirección física (4 dígitos hexadecimales)
@@ -405,7 +403,8 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     } else if (op2 >> 24 == 1) { // Registro
         valor_fuente = registros[op2 & 0x1F];
     } else { // Inmediato
-        valor_fuente = op2 & 0xFFFFFF;
+        short int inmediato16 = (short int)(op2 & 0xFFFF);
+        valor_fuente = (int)inmediato16;
     }
 
     // 2. Guardar en el destino (op1)
@@ -1092,7 +1091,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     int64_t clonconsigno;
     uint64_t clonsinsigno;
     clonconsigno=clonsinsigno=0;
-
+    int desbordamiento=0;
 
     if (op1>>24 == 3){//primer op de memoria
         if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
@@ -1120,22 +1119,26 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                         if( validoDirFisica(op2, registros, tabla) ){
                             //guardar en el MBR el valor:
                             registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
-                            int acarreo=0; int desbordamiento=0; int valorDeA = leerMemoria32(memoria,direfisopa);
+                            int acarreo=0; int valorDeA = leerMemoria32(memoria,direfisopa);
 
                              
                             for (i=1;i<=+registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                                 primerbit=leerMemoria32(memoria, direfisopa)>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
                                 valorDeA<<=1;
+                                int bitAntes = (clonsinsigno >> 31) & 1;
                                 clonsinsigno<<=1;
                                 clonconsigno<<=1;
+                                int bitDespues = (clonsinsigno >> 31) & 1;
+
+                                 if (bitAntes != bitDespues) desbordamiento = 1;
                             }
                             escribirMemoria32(memoria,direfisopa, valorDeA);
 
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno>>32)|0){
+                            if((clonsinsigno>>32)!=0){
                                 registros[CC]|=1<<29;
                             }
-                            if (clonconsigno!=clonsinsigno){
+                            if (desbordamiento){
                              registros[CC]|=1<<28;
                             }
 
@@ -1157,19 +1160,22 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SHL");
                 }else if (op2 >> 24 == 1){//segundo op de registro
                             int valorDeA = leerMemoria32(memoria,direfisopa);
+                            registros[CC]=0; //limpio CC
                      
                             for (i=1;i<=registros[op2&0x1F];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                              primerbit=leerMemoria32(memoria, direfisopa)>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
                              valorDeA<<=1;
-                             clonsinsigno<<=1;
-                             clonconsigno<<=1;
+                             int bitAntes = (clonsinsigno >> 31) & 1;
+                            clonsinsigno<<=1;
+                            clonconsigno<<=1;
+                            int bitDespues = (clonsinsigno >> 31) & 1;  
+                            if (bitAntes != bitDespues) desbordamiento = 1;
                             }
                             escribirMemoria32(memoria,direfisopa, valorDeA);
-                            registros[CC]=0; //limpio CC
-                            if((clonsinsigno>>32)|0){
+                            if((clonsinsigno>>32)!=0){
                             registros[CC]|=1<<29;
                             }
-                            if (clonconsigno!=clonsinsigno){
+                            if (desbordamiento){
                                 registros[CC]|=1<<28;
                             }
                             registros[CC]|=(leerMemoria32(memoria,direfisopa)<0)<<31;//NEGATIVO?
@@ -1180,15 +1186,20 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             for (i=1;i<=(op2 & 0xFFFFFF);i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                                 primerbit=leerMemoria32(memoria, direfisopa)>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
                              valorDeA<<=1;
-                             clonsinsigno<<=1;
-                             clonconsigno<<=1;
+                                int bitAntes = (clonsinsigno >> 31) & 1;
+                                clonsinsigno<<=1;
+                                clonconsigno<<=1;
+                                 int bitDespues = (clonsinsigno >> 31) & 1;
+
+
+                                 if (bitAntes != bitDespues) desbordamiento = 1;
                             }
                             escribirMemoria32(memoria,direfisopa, valorDeA);
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno>>32)|0){
+                            if((clonsinsigno>>32)!=0){
                             registros[CC]|=1<<29;
                             }
-                            if (clonconsigno!=clonsinsigno){
+                            if (desbordamiento){
                                 registros[CC]|=1<<28;
                             }
                             registros[CC]|=(leerMemoria32(memoria,direfisopa)<0)<<31;//NEGATIVO?
@@ -1224,18 +1235,22 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     direfisopb=registros[MAR] & 0xFFFF;
 
                     // registros[op1 & 0x1F] (primer operando)
-                        
+
                             for (i=1;i<=registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                              primerbit=registros[op1 & 0x1F]>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
                              registros[op1 & 0x1F]<<=1;
-                             clonconsigno<<=1;
-                             clonsinsigno<<=1;
+                             int bitAntes = (clonsinsigno >> 31) & 1;
+                                clonsinsigno<<=1;
+                                clonconsigno<<=1;
+                                 int bitDespues = (clonsinsigno >> 31) & 1;
+
+                                 if (bitAntes != bitDespues) desbordamiento = 1;
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno>>32)|0){
+                            if((clonsinsigno>>32)!=0){
                                 registros[CC]|=1<<29;
                             }
-                            if (clonconsigno!=clonsinsigno){
+                            if (desbordamiento){
                                 registros[CC]|=1<<28;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
@@ -1259,14 +1274,18 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             for (i=1;i<=registros[op2 & 0x1F];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                              primerbit=registros[op1 & 0x1F]>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
                              registros[op1 & 0x1F]<<=1;
-                             clonsinsigno<<=1;
-                             clonconsigno<<=1;
+                             int bitAntes = (clonsinsigno >> 31) & 1;
+                                clonsinsigno<<=1;
+                                clonconsigno<<=1;
+                                 int bitDespues = (clonsinsigno >> 31) & 1;
+
+                                 if (bitAntes != bitDespues) desbordamiento = 1;
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno>>32)|0){
+                            if((clonsinsigno>>32)!=0){
                                 registros[CC]|=1<<29;
                             }
-                            if (clonconsigno!=clonsinsigno){
+                            if (desbordamiento){
                                 registros[CC]|=1<<28;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
@@ -1277,14 +1296,18 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             for (i=1;i<=(op2 & 0xFFFFFF);i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                              primerbit=registros[op1 & 0x1F]>>31;//agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
                              registros[op1 & 0x1F]<<=1;
-                             clonsinsigno<<=1;
-                             clonconsigno<<=1;
+                               int bitAntes = (clonsinsigno >> 31) & 1;
+                            clonsinsigno<<=1;
+                            clonconsigno<<=1;
+                            int bitDespues = (clonsinsigno >> 31) & 1;
+
+                            if (bitAntes != bitDespues) desbordamiento = 1;
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno>>32)|0){
+                            if((clonsinsigno>>32)!=0){
                                 registros[CC]|=1<<29;
                             }
-                            if (clonconsigno!=clonsinsigno){
+                            if (desbordamiento){
                                 registros[CC]|=1<<28;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
@@ -1333,7 +1356,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             escribirMemoria32(memoria, direfisopa, valorDeA);
                             registros[CC]=0; //limpio CC
-                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                            if(( clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
                             
@@ -1362,7 +1385,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             escribirMemoria32(memoria, direfisopa, valorDeA);
                             registros[CC]=0; //limpio CC
-                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                            if(( clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
                             registros[CC]|=(leerMemoria32(memoria,direfisopa)<0)<<31;//NEGATIVO?
@@ -1419,7 +1442,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             clonsinsigno>>=1;
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno&0XFFFFFFFF)|0){
+                            if((clonsinsigno&0XFFFFFFFF)!=0){
                             registros[CC]|=1<<29;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
@@ -1445,7 +1468,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             clonsinsigno>>=1;
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno&0XFFFFFFFF)|0){
+                            if((clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
@@ -1459,7 +1482,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno&0XFFFFFFFF)|0){
+                            if((clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
@@ -1508,7 +1531,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             escribirMemoria32(memoria, direfisopa, valorA);
                             registros[CC]=0; //limpio CC
-                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                            if(( clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
                             
@@ -1537,7 +1560,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             escribirMemoria32(memoria, registros[MAR] & 0xFFFF, valorA);
                             registros[CC]=0; //limpio CC
-                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                           if(( clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
                             registros[CC]|=(leerMemoria32(memoria,direfisopa)<0)<<31;//NEGATIVO?
@@ -1552,11 +1575,11 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             }
                             escribirMemoria32(memoria, registros[MAR] & 0xFFFF, valorA);
                             registros[CC]=0; //limpio CC
-                            if(( clonsinsigno&0XFFFFFFFF)|0){
+                            if(( clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
-                            registros[CC]|=leerMemoria32(memoria, direfisopa)<<31;//NEGATIVO?
-                            registros[CC]|=leerMemoria32(memoria, direfisopa)<<30;//CERO?
+                             registros[CC]|=(leerMemoria32(memoria,direfisopa)<0)<<31;//NEGATIVO?
+                            registros[CC]|=(leerMemoria32(memoria,direfisopa)==0)<<30;//CERO?
 
                 }
             }
@@ -1596,7 +1619,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                                 clonsinsigno>>=1;
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno&0XFFFFFFFF)|0){
+                            if((clonsinsigno&0XFFFFFFFF)!=0){
                             registros[CC]|=1<<29;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
@@ -1639,7 +1662,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 
                             }
                             registros[CC]=0; //limpio CC
-                            if((clonsinsigno&0XFFFFFFFF)|0){
+                            if((clonsinsigno&0XFFFFFFFF)!=0){
                                 registros[CC]|=1<<29;
                             }
                             registros[CC]|=(registros[op1 & 0x1F]<0)<<31;//NEGATIVO?
