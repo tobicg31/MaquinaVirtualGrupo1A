@@ -64,7 +64,18 @@ void imprimirOperando(int Top,int op, char* nomRegistro[32], int registros[REGIS
             printf("%s", nomRegistro[op & 0x1F]);
         break;
         case 2:
-            printf("%d",(short int)(op & 0xFFFFFF));
+            int inmediato = op & 0xFFFFFF;
+            
+            // Si es un número negativo codificado en 16 bits (rango 0x8000 a 0xFFFF)
+            if (inmediato >= 0x8000 && inmediato <= 0xFFFF) { 
+                inmediato = (short int)inmediato; // Extiende el signo a 32 bits
+            } 
+            // Si es un número negativo codificado en 24 bits (rango 0x800000 a 0xFFFFFF)
+            else if (inmediato >= 0x800000) {
+                inmediato |= 0xFF000000; // Enciende el byte superior para hacerlo negativo en C
+            }
+            
+            printf("%d", inmediato);
         break;
         case 3: 
             int reg = op & 0x1F;                        // código del registro
