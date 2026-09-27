@@ -1,4 +1,4 @@
-# Maquina virtual grupo 1A, hecho por: Lourdes Luna, Juan Cruz Paez y Tobias A. Gilardi  
+# Maquina virtual grupo 1A, hecho por: Lourdes Victoria Luna, Juan Cruz Paez y Tobias A. Gilardi  
 Programa desarrollado para Windows.  
 Requerimientos previos: Compilador de C (MinGW) y traductor assembler a lenguaje maquina (vmt).  
 ## Como ejecutar el programa  
