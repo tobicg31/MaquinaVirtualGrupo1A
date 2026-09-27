@@ -168,6 +168,12 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         registros[OPC] = memoria[(registros[IP])] & 0x1F; // me guardo los 5 bits del codigo de operacio
         errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
 
+        if (errorSig) {
+            printf("\n[ERROR] Instruccion invalida (%02X) en la direccion IP: [%04X]\n", registros[OPC], registros[IP]);
+            registros[IP] = -1; // Marcamos el fin de la ejecución
+            break;              // Rompemos el ciclo inmediatamente
+        }
+
         if ((memoria[registros[IP]] >> 4)& 1){ //2 operandos
             TopB= (memoria[registros[IP]]>> 6)& 0x03; // si es un operando de mas de 1 byte, como lo guardo
             switch (TopB){
