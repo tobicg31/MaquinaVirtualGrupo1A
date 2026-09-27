@@ -760,6 +760,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             return;
         }
     } else if (op1 >> 24 == 1) { // Registro
+        valor_destino = registros[op1 & 0x1F];
         disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "CMP");
     }
     // Cálculo de desbordamiento y acarreo
@@ -1439,7 +1440,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                      
                             for (i=1;i<=registros[MBR];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                              
-                            registros[op1 & 0x1F]>>=1;
+                            registros[op1 & 0x1F] = (uint32_t)registros[op1 & 0x1F] >> 1;
                             clonsinsigno>>=1;
                             }
                             registros[CC]=0; //limpio CC
@@ -1465,7 +1466,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }else if (op2 >> 24 == 1){//segundo op de registro
               
                             for (i=1;i<=registros[op2 & 0x1F];i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
-                            registros[op1 & 0x1F]>>=1;
+                            registros[op1 & 0x1F] = (uint32_t)registros[op1 & 0x1F] >> 1;
                             clonsinsigno>>=1;
                             }
                             registros[CC]=0; //limpio CC
@@ -1478,7 +1479,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }else{//segundo op inmediato
              
                             for (i=1;i<=(op2 & 0xFFFFFF);i++){ //en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
-                             registros[op1 & 0x1F]>>=1;
+                             registros[op1 & 0x1F] = (uint32_t)registros[op1 & 0x1F] >> 1;
                              clonsinsigno>>=1;
 
                             }

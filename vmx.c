@@ -121,7 +121,7 @@ int validarDatos(FILE *arch, short int *tamanioCodigo){
     }
     datos[5] = '\0'; // terminador para que strcmp sea seguro
 
-    printf("%s \n", datos);
+   // printf("%s \n", datos);
 
     if (strcmp(datos, "VMX26") == 0){
         fread(&version, sizeof(version), 1, arch);
