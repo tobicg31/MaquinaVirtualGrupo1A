@@ -90,7 +90,7 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria,registros[MAR] & 0xFFFF);
 
                 registros[IP] = registros[MBR]; //hago el salto
                 disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JMP");
@@ -118,49 +118,49 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>30 == 0){ // N y Z son 0
+    if ((uint32_t)registros[CC]>>30 == 0){ // N y Z son 0
                 JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
                 disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JP");
     }
 }
 void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>30 == 0b10){ // N==1 Z==0
+    if ((uint32_t)registros[CC]>>30 == 0b10){ // N==1 Z==0
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JN");
     }
 }
 void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>30 == 0b01){ // N==0 Z==1
+    if ((uint32_t)registros[CC]>>30 == 0b01){ // N==0 Z==1
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JZ");
     }
 }
 void JC(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>29 & 1 == 1){ // C==1
+    if ((uint32_t)registros[CC]>>29 & 1 == 1){ // C==1
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JC");
     }
 }
 void JV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>28 & 1 == 1){ // V==1
+    if ((uint32_t)registros[CC]>>28 & 1 == 1){ // V==1
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JV");
     }
 }
 void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>30 == 0b10 || registros[CC]>>30 == 0b01 ){ // N o Z == 1
+    if ((uint32_t)registros[CC]>>30 == 0b10 || (uint32_t)registros[CC]>>30 == 0b01 ){ // N o Z == 1
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JNP");
     }
 }
 void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if (registros[CC]>>31 == 0 ){ // N == 0
+    if ((uint32_t)registros[CC]>>31 == 0 ){ // N == 0
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JNN");
     }
 }
 void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if ((registros[CC]>>30 & 1) == 0 ){ // Z == 0
+    if (((uint32_t)registros[CC]>>30 & 1) == 0 ){ // Z == 0
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JNZ");
     }
