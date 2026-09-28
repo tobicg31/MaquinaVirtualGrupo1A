@@ -154,7 +154,7 @@ void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-    if ((uint32_t)registros[CC]>>31 == 0 ){ // N == 0
+    if (((uint32_t)registros[CC]>>31)&1 == 0 ){ // N == 0
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JNN");
     }
@@ -195,8 +195,8 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 //guardar en el MbR el valor:
                 registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
                 escribirMemoria32(memoria,registros[MAR] & 0xFFFF,~registros[MBR]);
-                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
-                escribirMemoria32(memoria,registros[MAR] & 0xFFFF,~registros[MBR]);
+                //registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
+                //escribirMemoria32(memoria,registros[MAR] & 0xFFFF,~registros[MBR]);
                 disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "NOT");
             }
             else{
@@ -362,7 +362,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     printf(" ");
                 }
                 if (formato & 0x01) { // bit 0: Decimal
-                    printf("%d", valor);
+                    printf("%d", (unsigned)valor);
                 }
 
                 printf("\n"); //bajo de linea por si tengo q escribir otro
@@ -480,18 +480,18 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "ADD");
                 
             } else {
-                printf("FALLO DE SEGMENTO esto falla ?????");
+                printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
                 return;
             }
         } else {
-            printf("FALLO DE SEGMENTO tiene que ser esto ");
+            printf("FALLO DE SEGMENTO");
             registros[IP] = -1;
             return;
         }
     } else if (op1 >> 24 == 1) { // Registro
         valor_destino = registros[op1 & 0x1F];
-        registros[op1 & 0x1F] += valor_fuente;
+        registros[op1 & 0x1F] = valor_destino+valor_fuente;
         disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "ADD");
     }
    int64_t res_signed = (int64_t)valor_destino + (int64_t)valor_fuente;
@@ -648,7 +648,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
    uint64_t res_unsigned;
    int32_t resultado_32;
 
-
+    //printf("dasdasd");
 
     // 1. Obtener valor de la fuente (op2)
     if (op2 >> 24 == 3) { // Memoria
@@ -687,8 +687,9 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)) {
                 valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
-                 escribirMemoria32(memoria, registros[MAR] & 0xFFFF, valor_destino / valor_fuente);
-                registros[AC] %= valor_fuente; // simplificado a 1 byte o según corresponda
+                escribirMemoria32(memoria, registros[MAR] & 0xFFFF, valor_destino / valor_fuente);
+                registros[AC] = valor_destino % valor_fuente ; // simplificado a 1 byte o según corresponda
+                printf("%d", registros[AC]);
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "DIV");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -702,9 +703,10 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     } else if (op1 >> 24 == 1) { // Registro
         valor_destino = registros[op1 & 0x1F];
-        registros[op1 & 0x1F] /= valor_fuente;
+        registros[op1 & 0x1F] = valor_destino / valor_fuente;
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "DIV");
-        registros[AC] %= valor_fuente;
+        registros[AC] = valor_destino % valor_fuente;
+        printf(" sdsdas%d", registros[AC]);
     }
     resultado_32 = valor_destino / valor_fuente;
    cambiarCC(resultado_32, 0, 0, registros);
