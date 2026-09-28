@@ -5,7 +5,7 @@
 
 int validarDatos(FILE * arch, short int *tamanoCodigo);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]);
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo);
 void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32]) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
@@ -102,7 +102,7 @@ void main(int argc, char *argv[]){
             DesensamblarEstatico(memoria, tamCodigo, nomRegistro);
         }
             
-        Ejecucion(0, memoria, registros, tabla, nomRegistro);
+        Ejecucion(0, memoria, registros, tabla, nomRegistro, tamCodigo);
 
     }
     else {
@@ -148,7 +148,7 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]){
         Tabla[i][1] = -1;
     }
 }
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32]){
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo){
     int errorSig;
 
     registros[CS] = 0x00000000;
@@ -156,9 +156,10 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
     registros[IP] = registros[CS];
     void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, B, C, D, E, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
-    int IPant;
+    int IPant; 
     
     do{ //<----------------cambiar a un Do-while
+        
         int TopB=0;
         int TopA=0;
         int opA=0, opB=0;
@@ -204,6 +205,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         else{
             if (((memoria[registros[IP]] >> 5) & 0x07 ) == 0x000){
                 TopA=0;
+                TopB=0;
             }
             else{ //1 solo operando
                 TopA= (memoria[registros[IP]] >> 6)& 0x03;
@@ -240,8 +242,10 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         //imprimir_binario(registros[CC], 4);
         //printf("\n");
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
+        //printf("aca \n");
+        
 
-    }while (!errorSig && registros[IP]!=-1);
+    }while (!errorSig && registros[IP]!=-1 && registros[IP]<tamCodigo);
 
 }
 

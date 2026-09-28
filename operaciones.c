@@ -309,7 +309,8 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
     }
-    else{ //WRITE
+    else 
+    if (tiposys==2) {//WRITE
       for (i=0;i<cantidad;i++){
             int offset_actual = offset + (i * tamanio);
             int dirfis_actual;
@@ -373,9 +374,12 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 return;
             }
             
+            
         }
+        //printf("hola");
+        
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
-    }
+            }
 }
 void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
     int valor_fuente = 0;
