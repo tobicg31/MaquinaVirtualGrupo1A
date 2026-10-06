@@ -123,8 +123,47 @@ void main(int argc, char *argv[]) {
                     
                 Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0]);
             }
-            else{
-                //to do v2
+            else if (version == 2) {
+                // 1. Calcular el Param Segment (Siempre existe si ejecutamos un .vmx)
+                short int tamanioPS = 0;
+                int argcSubrutina = 0;
+                
+                tamanioPS += strlen(archivo_vmx) + 1; // +1 por el '\0'
+                argcSubrutina++;
+                
+                if (param_index != -1) {
+                    for (int i = param_index; i < argc; i++) {
+                        tamanioPS += strlen(argv[i]) + 1;
+                        argcSubrutina++;
+                    }
+                }
+                tamanioPS += (argcSubrutina * 4); // Arreglo de punteros al final
+
+                // 2. Ordenar los tamaños para la memoria física: PS, KS, CS, DS, ES, SS
+                // Según el archivo .vmx, validarDatos los guardó en:
+                // tamanioSegmentos[0] = CS
+                // tamanioSegmentos[1] = DS
+                // tamanioSegmentos[2] = ES
+                // tamanioSegmentos[3] = SS
+                // tamanioSegmentos[4] = KS
+                short int tamOrdenados[6] = {tamanioPS,tamanioSegmentos[4], tamanioSegmentos[0], tamanioSegmentos[1], tamanioSegmentos[2],tamanioSegmentos[3]};
+
+                if (sumaTamanios(tamOrdenados) <= tam_memoria_kib){
+                    // 3. Inicializar la tabla y los registros de segmentos
+                    inicializarTablaV2(registros, tabla, tamOrdenados);
+                    
+                    // TODO: Aquí debes implementar la escritura física en el vector 'memoria'.
+                    // Deberás escribir los strings del PS, calcular y escribir sus punteros, 
+                    // y luego usar fread() para leer KS, CS, DS, ES y SS del archivo .vmx
+                    // usando las direcciones base que quedaron en 'tabla'.
+                    registros[IP] = tabla[CS>>16][0]<<16 | tamanioSegmentos[5];
+                    registros[SP] = registros[SS] + tamanioPS; 
+                    //cargaMemoria, param, codigo y constantes
+                    //ejecucion
+                }
+                else{
+                    printf("no alcanza el tamanio en memoria");
+                }
             }
             fclose(archvmx);
 
@@ -134,12 +173,63 @@ void main(int argc, char *argv[]) {
         }
     } else if (archivo_vmi != NULL) {
         // Lógica para reanudar desde .vmi
-        printf("Se leyo archivo .vmi pero aun no esta implementado.\n");
+        //cargar desde el vmi
+        //ejecucion
+        FILE * archvmi = fopen(archivo_vmi, "rb");
+        char ident[5]; char verVmi; short int tamMemoria;
+        if (strcmp("VMI26", fread(ident, sizeof(ident), 1, archvmi)) == 0){
+            if(fread(&verVmi, sizeof(char), 1, archvmi)==1){
+                fread(&tamMemoria, sizeof(tamMemoria), 1, archvmi);
+                //cargo los registros
+                //cargo la tabla
+                //cargo la memoria
+                //ejecuto al toque
+            }
+        }
     } else {
         printf("Error: Se requiere archivo .vmx o .vmi\n");
     }
 }
 
+int sumaTamanios(short int tamanio[6]){
+    int suma=0;
+    for (int i = 0; i < 6; i++){
+        suma += tamanio[i];
+    }
+    return suma;
+}
+
+void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short int tamOrdenados[6]) {
+    int dirActual = 0; 
+    int indice_tabla = 0;
+
+    // 1. Limpiamos la tabla
+    for (int i = 0; i < 8; i++) {
+        tabla[i][0] = -1;
+        tabla[i][1] = -1;
+    }
+
+    // 2. Registros en el orden exacto de carga en memoria física (Parte II)
+    int registros_segmento[6] = {PS, KS, CS, DS, ES, SS};
+
+    // 3. Iteramos sobre los 6 segmentos posibles
+    for (int i = 0; i < 6; i++) {
+        int tam = tamOrdenados[i];
+        int reg_id = registros_segmento[i];
+
+        if (tam > 0) {
+            tabla[indice_tabla][0] = dirActual;
+            tabla[indice_tabla][1] = tam;
+            
+            registros[reg_id] = indice_tabla << 16;
+            
+            dirActual += tam;
+            indice_tabla++;
+        } else {
+            registros[reg_id] = -1; 
+        }
+    }
+}
 // void main(int argc, char *argv[]){
 //     char memoria[MEMORIA]; //vector de 1 byte
 //     short int tabla[8][2]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
@@ -248,7 +338,7 @@ int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
             return 1;
         }
         else {
-            for (int i=0; i<5; i++){    
+            for (int i=0; i<=5; i++){    
                 unsigned char byteAlto, byteBajo;
                 fread(&byteAlto, 1, 1, arch);
                 fread(&byteBajo, 1, 1, arch);
