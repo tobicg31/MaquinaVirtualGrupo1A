@@ -120,7 +120,9 @@ void main(int argc, char *argv[]) {
                 if (flag) {  
                     DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro);
                 }
-                    
+                registros[CS] = 0x00000000;
+                registros[DS] = 0x00010000;
+                registros[IP] = registros[CS];
                 Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0]);
             }
             else if (version == 2) {
@@ -148,14 +150,57 @@ void main(int argc, char *argv[]) {
                 // tamanioSegmentos[4] = KS
                 short int tamOrdenados[6] = {tamanioPS,tamanioSegmentos[4], tamanioSegmentos[0], tamanioSegmentos[1], tamanioSegmentos[2],tamanioSegmentos[3]};
 
-                if (sumaTamanios(tamOrdenados) <= tam_memoria_kib){
+                if (sumaTamanios(tamOrdenados) <= tam_memoria_kib*1024){
                     // 3. Inicializar la tabla y los registros de segmentos
                     inicializarTablaV2(registros, tabla, tamOrdenados);
                     
                     registros[IP] = tabla[CS>>16][0]<<16 | tamanioSegmentos[5];
-                    registros[SP] = registros[SS] + tamanioPS; 
+                    registros[SP] = registros[SS] | tamanioPS; 
                     //cargaMemoria, param, codigo y constantes
+                    
+                    for (int i=tabla[CS>>16][0]; i<tabla[CS>>16][1]; i++){
+                        fread(&memoria[i], 1, 1, archvmx);
+                    }
+                    if (registros[KS] != -1){
+                        for (int i=tabla[KS>>16][0]; i<tabla[KS>>16][1]; i++){
+                            fread(&memoria[i], 1, 1, archvmx);
+                        }
+                    }
+                    if (registros[PS] != -1) {
+                        int ps_base = tabla[registros[PS] >> 16][0]; // Físicamente será 0
+                        int offset_actual = 0;
+                        int offsets_strings[argcSubrutina]; // Arreglo temporal para guardar los offsets
+                        int arg_idx = 0;
+
+                        // 1. Escribir el nombre del archivo .vmx con su '\0'
+                        offsets_strings[arg_idx++] = offset_actual;
+                        for (int i = 0; i <= strlen(archivo_vmx); i++) {
+                            memoria[ps_base + offset_actual++] = archivo_vmx[i];
+                        }
+
+                        // 2. Escribir los parámetros adicionales con su '\0'
+                        if (param_index != -1) {
+                            for (int i = param_index; i < argc; i++) {
+                                offsets_strings[arg_idx++] = offset_actual;
+                                for (int k = 0; k <= strlen(argv[i]); k++) {
+                                    memoria[ps_base + offset_actual++] = argv[i][k];
+                                }
+                            }
+                        }
+
+                        // 3. Escribir el arreglo de punteros (4 bytes por argumento) en formato Big Endian
+                        for (int i = 0; i < argcSubrutina; i++) {
+                            int puntero = offsets_strings[i]; // Los 16 bits altos ya son 0
+                            memoria[ps_base + offset_actual++] = (puntero >> 24) & 0xFF;
+                            memoria[ps_base + offset_actual++] = (puntero >> 16) & 0xFF;
+                            memoria[ps_base + offset_actual++] = (puntero >> 8) & 0xFF;
+                            memoria[ps_base + offset_actual++] = puntero & 0xFF;
+                        }
+                    }
+                    //dissasembler v2:
+
                     //ejecucion
+                    Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[0]);
                 }
                 else{
                     printf("no alcanza el tamanio en memoria");
@@ -176,10 +221,24 @@ void main(int argc, char *argv[]) {
         if (strcmp("VMI26", fread(ident, sizeof(ident), 1, archvmi)) == 0){
             if(fread(&verVmi, sizeof(char), 1, archvmi)==1){
                 fread(&tamMemoria, sizeof(tamMemoria), 1, archvmi);
+                int i;
                 //cargo los registros
+                for (i=0; i<32; i++){
+                    fread(&registros[i], 4, 1, archvmi);
+                }
                 //cargo la tabla
+                for (i=0; i<8; i++){
+                    fread(&tabla[i][0], 2, 1, archvmi);
+                    fread(&tabla[i][1], 2, 1, archvmi);                    
+                }
                 //cargo la memoria
+                for (i=0; i<tamMemoria; i++){
+                    fread(&memoria[i], 1, 1, archvmi);
+                }
+                //dissasembler:
+
                 //ejecuto al toque
+                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0]);
             }
         }
     } else {
@@ -360,9 +419,7 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]){
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo){
     int errorSig;
 
-    registros[CS] = 0x00000000;
-    registros[DS] = 0x00010000;
-    registros[IP] = registros[CS];
+    
     void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, PUSH, POP, CALL, RET, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
     int IPant; 
