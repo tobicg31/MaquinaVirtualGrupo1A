@@ -521,7 +521,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)) {
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
             } else {
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
@@ -592,7 +592,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)) {
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
             } else {
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
@@ -660,7 +660,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)) {
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
             } else {
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
@@ -731,7 +731,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)) {
                 valor_fuente =  leerMemoria32(memoria, registros[MAR] & 0xFFFF);
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
             } else {
                 printf("FALLO DE SEGMENTO");
                 registros[IP] = -1;
@@ -897,7 +897,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
             registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
                 int dirOpA = registros[MAR] & 0xFFFF;
                 if (op2 >> 24 == 3){// segundo op de memoria
 
@@ -997,7 +997,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
                 int dirOpA = registros[MAR] & 0xFFFF;
                 if (op2 >> 24 == 3){// segundo op de memoria
 
@@ -1516,7 +1516,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MBR el valor:
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
                 direfisopa=registros[MAR] & 0xFFFF;
                 bitdesigno=memoria[direfisopa]>>31;
 
