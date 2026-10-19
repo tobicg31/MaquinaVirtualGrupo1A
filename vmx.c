@@ -7,6 +7,47 @@
 int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo);
+
+int sumaTamanios(short int tamanio[6]){
+    int suma=0;
+    for (int i = 0; i < 6; i++){
+        suma += tamanio[i];
+    }
+    return suma;
+}
+
+void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short int tamOrdenados[6]) {
+    int dirActual = 0; 
+    int indice_tabla = 0;
+
+    // 1. Limpiamos la tabla
+    for (int i = 0; i < 8; i++) {
+        tabla[i][0] = -1;
+        tabla[i][1] = -1;
+    }
+
+    // 2. Registros en el orden exacto de carga en memoria física (Parte II)
+    int registros_segmento[6] = {PS, KS, CS, DS, ES, SS};
+
+    // 3. Iteramos sobre los 6 segmentos posibles
+    for (int i = 0; i < 6; i++) {
+        int tam = tamOrdenados[i];
+        int reg_id = registros_segmento[i];
+
+        if (tam > 0) {
+            tabla[indice_tabla][0] = dirActual;
+            tabla[indice_tabla][1] = tam;
+            
+            registros[reg_id] = indice_tabla << 16;
+            
+            dirActual += tam;
+            indice_tabla++;
+        } else {
+            registros[reg_id] = -1; 
+        }
+    }
+}
+
 void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32]) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
@@ -200,7 +241,8 @@ void main(int argc, char *argv[]) {
                     //dissasembler v2:
 
                     //ejecucion
-                    Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[0]);
+                    printf("ejecuto en base al vmx");
+                    //Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[0]);
                 }
                 else{
                     printf("no alcanza el tamanio en memoria");
@@ -209,7 +251,7 @@ void main(int argc, char *argv[]) {
             fclose(archvmx);
 
         } else {
-            printf("Error de validacion\n");
+            printf("Error de validaciondd\n");
             fclose(archvmx);
         }
     } else if (archivo_vmi != NULL) {
@@ -217,8 +259,20 @@ void main(int argc, char *argv[]) {
         //cargar desde el vmi
         //ejecucion
         FILE * archvmi = fopen(archivo_vmi, "rb");
-        char ident[5]; char verVmi; short int tamMemoria;
-        if (strcmp("VMI26", fread(ident, sizeof(ident), 1, archvmi)) == 0){
+        char ident[5]; char id; char verVmi; short int tamMemoria;
+
+
+        //fread(ident, sizeof(char)*5, 1, archvmi);
+        for (int i = 0; i < 5; i++){
+            fread(&id, sizeof(char), 1, archvmi);
+            ident[i] = id;
+        }
+        ident[5] = '\0';
+
+        printf("ejecuto desde vmi %s a asd", ident);
+
+
+        if (strcmp("VMI26", ident) == 0){
             if(fread(&verVmi, sizeof(char), 1, archvmi)==1){
                 fread(&tamMemoria, sizeof(tamMemoria), 1, archvmi);
                 int i;
@@ -238,7 +292,8 @@ void main(int argc, char *argv[]) {
                 //dissasembler:
 
                 //ejecuto al toque
-                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0]);
+                printf("ejecuto desde un vmi");
+                //Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0]);
             }
         }
     } else {
@@ -246,45 +301,7 @@ void main(int argc, char *argv[]) {
     }
 }
 
-int sumaTamanios(short int tamanio[6]){
-    int suma=0;
-    for (int i = 0; i < 6; i++){
-        suma += tamanio[i];
-    }
-    return suma;
-}
 
-void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short int tamOrdenados[6]) {
-    int dirActual = 0; 
-    int indice_tabla = 0;
-
-    // 1. Limpiamos la tabla
-    for (int i = 0; i < 8; i++) {
-        tabla[i][0] = -1;
-        tabla[i][1] = -1;
-    }
-
-    // 2. Registros en el orden exacto de carga en memoria física (Parte II)
-    int registros_segmento[6] = {PS, KS, CS, DS, ES, SS};
-
-    // 3. Iteramos sobre los 6 segmentos posibles
-    for (int i = 0; i < 6; i++) {
-        int tam = tamOrdenados[i];
-        int reg_id = registros_segmento[i];
-
-        if (tam > 0) {
-            tabla[indice_tabla][0] = dirActual;
-            tabla[indice_tabla][1] = tam;
-            
-            registros[reg_id] = indice_tabla << 16;
-            
-            dirActual += tam;
-            indice_tabla++;
-        } else {
-            registros[reg_id] = -1; 
-        }
-    }
-}
 // void main(int argc, char *argv[]){
 //     char memoria[MEMORIA]; //vector de 1 byte
 //     short int tabla[8][2]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
@@ -393,12 +410,14 @@ int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
             return 1;
         }
         else {
+            printf("version2 ");
             for (int i=0; i<=5; i++){    
                 unsigned char byteAlto, byteBajo;
                 fread(&byteAlto, 1, 1, arch);
                 fread(&byteBajo, 1, 1, arch);
                 tamanioSegmentos[i] = (short int)((byteAlto << 8) | byteBajo);
             }
+            return 1;
         }
     }
 
