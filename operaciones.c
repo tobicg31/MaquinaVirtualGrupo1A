@@ -10,6 +10,14 @@ int32_t leerMemoria32(char memoria[MEMORIA], int dir){
            ((unsigned char)memoria[dir + 2] << 8)  |
            ((unsigned char)memoria[dir + 3]);
 }
+/*
+dato=0;
+for (int i=0; i<mod;i++){
+    dato |= memoria[dir+i]<< (mod-i-1)*8;
+}
+return dato;
+*/
+
 
 void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor){
     memoria[dir]     = (valor >> 24) & 0xFF;
@@ -17,6 +25,11 @@ void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor){
     memoria[dir + 2] = (valor >> 8)  & 0xFF;
     memoria[dir + 3] =  valor        & 0xFF;
 }
+/*
+for(int i=0;i<mod;i++){
+    memoria[dir+i] = (valor >> (mod-i-1)*8 )&0xFF;
+}
+*/
 
 void cargarLAR(int op, int registros[REGISTROS], short int tabla[8][2]){
     int base = registros[op & 0x1F];         // puntero base: segmento(16) + offset(16)
@@ -108,6 +121,25 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
 
     }else if (op1 >> 24 == 1){//registro
+        /*
+        int regis=op1 & 0x1F;
+        int32_t valor=0xFFFFFFFF;
+        switch ( (regis>>5) & 0x3 ){
+            case 3:
+                valor |= registros[regis] & 0xFFFF;
+                break;
+            case 2:
+                valor |= (registros[regis]>>8)& 0xFF;
+                break;
+            case 1:
+                valor |= registros[regis] & 0xFF;
+                break;
+            default
+                valor = registros[regis];
+                break;
+        }
+        return valor;
+        */
         registros[IP] = registros[op1 & 0x1F];
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JMP");
 
@@ -221,17 +253,17 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "NOT");
     }
 }
-void B(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
     printf("funcion vacia");
 
 }
-void C(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
 printf("funcion vacia");
 }
-void D(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+void CALL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
 printf("funcion vacia  d");
 }
-void E(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+void RET(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
 printf("funcion vacia");
 }
 // Imprime un entero en formato binario con prefijo 0b según la cantidad de bits
