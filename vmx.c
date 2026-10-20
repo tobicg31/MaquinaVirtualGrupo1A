@@ -196,7 +196,7 @@ void main(int argc, char *argv[]) {
                     inicializarTablaV2(registros, tabla, tamOrdenados);
                     
                     registros[IP] = tabla[CS>>16][0]<<16 | tamanioSegmentos[5];
-                    registros[SP] = registros[SS] | tamanioPS; 
+                    registros[SP] = registros[SS] | tamanioPS; //D U D A, va + o | 
                     //cargaMemoria, param, codigo y constantes
                     
                     for (int i=tabla[CS>>16][0]; i<tabla[CS>>16][1]; i++){
@@ -521,7 +521,12 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         registros[IP] += 1+TopB+TopA;
 
         //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
+        
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro);
+        
+        //preguntar el breakpoint aca antes de pegar la vuelta
+        
+        
         //printf("el valor del cc es:%x \n", registros[CC]);
         //printf("el valor del cc es:");
         //imprimir_binario(registros[CC], 4);
