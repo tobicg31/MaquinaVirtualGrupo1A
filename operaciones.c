@@ -10,6 +10,14 @@ int32_t leerMemoria32(char memoria[MEMORIA], int dir){
            ((unsigned char)memoria[dir + 2] << 8)  |
            ((unsigned char)memoria[dir + 3]);
 }
+/*
+dato=0;
+for (int i=0; i<mod;i++){
+    dato |= memoria[dir+i]<< (mod-i-1)*8;
+}
+return dato;
+*/
+
 
 void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor){
     memoria[dir]     = (valor >> 24) & 0xFF;
@@ -17,6 +25,11 @@ void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor){
     memoria[dir + 2] = (valor >> 8)  & 0xFF;
     memoria[dir + 3] =  valor        & 0xFF;
 }
+/*
+for(int i=0;i<mod;i++){
+    memoria[dir+i] = (valor >> (mod-i-1)*8 )&0xFF;
+}
+*/
 
 void cargarLAR(int op, int registros[REGISTROS], short int tabla[8][2]){
     int base = registros[op & 0x1F];         // puntero base: segmento(16) + offset(16)
@@ -108,6 +121,25 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
 
     }else if (op1 >> 24 == 1){//registro
+        /*
+        int regis=op1 & 0x1F;
+        int32_t valor=0xFFFFFFFF;
+        switch ( (regis>>5) & 0x3 ){
+            case 3:
+                valor |= registros[regis] & 0xFFFF;
+                break;
+            case 2:
+                valor |= (registros[regis]>>8)& 0xFF;
+                break;
+            case 1:
+                valor |= registros[regis] & 0xFF;
+                break;
+            default
+                valor = registros[regis];
+                break;
+        }
+        return valor;
+        */
         registros[IP] = registros[op1 & 0x1F];
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JMP");
 
@@ -221,6 +253,8 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "NOT");
     }
 }
+void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+    printf("funcion vacia");
 
 void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
     printf("PUSH");
@@ -467,7 +501,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     } else if (op2 >> 24 == 1) { // Registro
         valor_fuente = registros[op2 & 0x1F];
     } else { // Inmediato
-        valor_fuente = op2 & 0xFFFFFF;
+        valor_fuente = (int)(short int)(op2 & 0xFFFF);
     }
 
     // 2. Guardar en el destino (op1)
@@ -535,7 +569,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     } else if (op2 >> 24 == 1) { // Registro
         valor_fuente = registros[op2 & 0x1F];
     } else { // Inmediato
-        valor_fuente = op2 & 0xFFFFFF;
+        valor_fuente = (int)(short int)(op2 & 0xFFFF);
     }
 
     // 2. Guardar en el destino (op1)
@@ -674,7 +708,8 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     } else if (op2 >> 24 == 1) { // Registro
         valor_fuente = registros[op2 & 0x1F];
     } else { // Inmediato
-        valor_fuente = op2 & 0xFFFFFF;
+        valor_fuente = op2 & 0xFFFFFF; 
+    } //nos habia faltado esta llave que cierra no lo puedo creer
 
     if (valor_fuente == 0) {
         printf("Error: División por cero\n");
@@ -691,7 +726,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
                 escribirMemoria32(memoria, registros[MAR] & 0xFFFF, valor_destino / valor_fuente);
                 registros[AC] = valor_destino % valor_fuente ; // simplificado a 1 byte o según corresponda
-                printf("%d", registros[AC]);
+               // printf("%d", registros[AC]);
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "DIV");
             } else {
                 printf("FALLO DE SEGMENTO");
@@ -708,14 +743,14 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         registros[op1 & 0x1F] = valor_destino / valor_fuente;
                 disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "DIV");
         registros[AC] = valor_destino % valor_fuente;
-        printf(" sdsdas%d", registros[AC]);
+        //printf(" sdsdas%d", registros[AC]);
     }
     resultado_32 = valor_destino / valor_fuente;
    cambiarCC(resultado_32, 0, 0, registros);
     
     }
 }
-}
+
 
 void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char* nomRegistro[32]){
     int32_t valor_fuente = 0;
@@ -797,7 +832,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
             if( validoDirFisica(op1, registros, tabla) ){
                 //guardar en el MbR el valor:
-                registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF); //esto nos fallaba en el ultimo punto lpm
                 int dirOpA = registros[MAR] & 0xFFFF;
                 if (op2 >> 24 == 3){// segundo op de memoria
 
@@ -859,7 +894,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
                 if( validoDirFisica(op2, registros, tabla) ){
                     //guardar en el MbR el valor:
-                    registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                    registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
 
                     registros[op1 & 0x1F] &= registros[MBR];
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "AND");
@@ -959,7 +994,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
                 registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
                 if( validoDirFisica(op2, registros, tabla) ){
                     //guardar en el MbR el valor:
-                    registros[MBR] = memoria[registros[MAR] & 0xFFFF];
+                    registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF);
                     registros[op1 & 0x1F] |= registros[MBR];
                     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "OR");
                 }
