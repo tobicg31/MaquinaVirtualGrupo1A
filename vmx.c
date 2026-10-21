@@ -1,11 +1,53 @@
 #include <stdio.h>
 #include <string.h>
 #include <string.h>
+#include <stdlib.h>
 #include "operaciones.h"
 
-int validarDatos(FILE * arch, short int *tamanoCodigo);
+int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo);
+
+int sumaTamanios(short int tamanio[6]){
+    int suma=0;
+    for (int i = 0; i < 6; i++){
+        suma += tamanio[i];
+    }
+    return suma;
+}
+
+void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short int tamOrdenados[6]) {
+    int dirActual = 0; 
+    int indice_tabla = 0;
+
+    // 1. Limpiamos la tabla
+    for (int i = 0; i < 8; i++) {
+        tabla[i][0] = -1;
+        tabla[i][1] = -1;
+    }
+
+    // 2. Registros en el orden exacto de carga en memoria física (Parte II)
+    int registros_segmento[6] = {PS, KS, CS, DS, ES, SS};
+
+    // 3. Iteramos sobre los 6 segmentos posibles
+    for (int i = 0; i < 6; i++) {
+        int tam = tamOrdenados[i];
+        int reg_id = registros_segmento[i];
+
+        if (tam > 0) {
+            tabla[indice_tabla][0] = dirActual;
+            tabla[indice_tabla][1] = tam;
+            
+            registros[reg_id] = indice_tabla << 16;
+            
+            dirActual += tam;
+            indice_tabla++;
+        } else {
+            registros[reg_id] = -1; 
+        }
+    }
+}
+
 void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32]) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
@@ -65,54 +107,289 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
         disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc]);
     }
 }
-void main(int argc, char *argv[]){
-    int flag;
 
-    char memoria[MEMORIA]; //vector de 1 byte
-    short int tabla[8][2]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
-    int registros[REGISTROS] = {0}; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
+void main(int argc, char *argv[]) {
+    // 1. Variables para identificar qué parámetros se ingresaron
+    char *archivo_vmx = NULL;
+    char *archivo_vmi = NULL;
+    int flag = 0;
+    int tam_memoria_kib = 16; 
+    int param_index = -1;
 
+    // 2. Leemos los parámetros evaluando su contenido, no su posición estricta.
+    // Esto evita crasheos si el usuario omite el archivo .vmi o el tamaño de memoria.
+    for (int i = 1; i < argc; i++) {
+        if (strstr(argv[i], ".vmx") != NULL) {
+            archivo_vmx = argv[i];
+        } else if (strstr(argv[i], ".vmi") != NULL) {
+            archivo_vmi = argv[i];
+        } else if (strncmp(argv[i], "m=", 2) == 0) {
+            tam_memoria_kib = atoi(argv[i] + 2);
+        } else if (strcmp(argv[i], "-d") == 0) {
+            flag = 1;
+        } else if (strcmp(argv[i], "-p") == 0) {
+            param_index = i + 1; // Lo que sigue son los parámetros del programa
+            break; // Dejamos de buscar flags de la máquina virtual
+        }
+    }
+
+    // 3. Declaración de memoria de TAMAÑO VARIABLE según m=M
+    char memoria[tam_memoria_kib * 1024]; 
+    short int tabla[8][2]; 
+    int registros[REGISTROS] = {0}; 
     char* nomRegistro[32] = {"IP", "OPC", "OP1","OP2", "LAR", "MAR", "MBR", "SP", "BP", "nada", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "CS", "DS", "ES", "SS", "KS", "PS"};
 
-    if (argc >= 3)
-        flag = strcmp(argv[2],"-d")==0;//argv[2]=="-d"; soy un boludo por dios
-    else
-        flag = 0;
+    short int tamanioSegmentos[10] = {0};
+    char version = 0;
 
-
-    FILE * arch = fopen(argv[1], "rb");
-
-    char dato;
-    int tamanioArchivo=0;
-    short int tamCodigo;
-
-    int validar;
-    validar = validarDatos(arch, &tamCodigo); //ya me queda el puntero actualizado ?????????
-    if (validar){
-        inicializarTabla(tamCodigo, tabla);
-        int j=0;
-
-        while (j<tamCodigo){
-        fread(&dato, sizeof(dato),1,arch);
-        memoria[j++] = dato;
+    // 4. Lógica principal de carga y ejecución
+    if (archivo_vmx != NULL) { 
+        FILE *archvmx = fopen(archivo_vmx, "rb");
+        if (!archvmx) {
+            printf("Error al abrir el archivo %s\n", archivo_vmx);
+            return;
         }
-        fclose(arch);
+        
 
-        if(flag){  
-            DesensamblarEstatico(memoria, tamCodigo, nomRegistro);
+        int validar = validarDatos(archvmx, tamanioSegmentos, &version);
+        if (validar) {
+            if (version == 1) {
+                inicializarTabla(tamanioSegmentos[0], tabla);
+                int j = 0; char dato;
+                while (j < tamanioSegmentos[0] && fread(&dato, 1, 1, archvmx)) {
+                    memoria[j++] = dato;
+                }
+                if (flag) {  
+                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro);
+                }
+                registros[CS] = 0x00000000;
+                registros[DS] = 0x00010000;
+                registros[IP] = registros[CS];
+                Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0]);
+            }
+            else if (version == 2) {
+                // 1. Calcular el Param Segment (Siempre existe si ejecutamos un .vmx)
+                short int tamanioPS = 0;
+                int argcSubrutina = 0;
+                
+                tamanioPS += strlen(archivo_vmx) + 1; // +1 por el '\0'
+                argcSubrutina++;
+                
+                if (param_index != -1) {
+                    for (int i = param_index; i < argc; i++) {
+                        tamanioPS += strlen(argv[i]) + 1;
+                        argcSubrutina++;
+                    }
+                }
+                tamanioPS += (argcSubrutina * 4); // Arreglo de punteros al final
+
+                // 2. Ordenar los tamaños para la memoria física: PS, KS, CS, DS, ES, SS
+                // Según el archivo .vmx, validarDatos los guardó en:
+                // tamanioSegmentos[0] = CS
+                // tamanioSegmentos[1] = DS
+                // tamanioSegmentos[2] = ES
+                // tamanioSegmentos[3] = SS
+                // tamanioSegmentos[4] = KS
+                short int tamOrdenados[6] = {tamanioPS,tamanioSegmentos[4], tamanioSegmentos[0], tamanioSegmentos[1], tamanioSegmentos[2],tamanioSegmentos[3]};
+
+                if (sumaTamanios(tamOrdenados) <= tam_memoria_kib*1024){
+                    // 3. Inicializar la tabla y los registros de segmentos
+                    inicializarTablaV2(registros, tabla, tamOrdenados);
+                    
+                    registros[IP] = tabla[CS>>16][0]<<16 | tamanioSegmentos[5];
+                    registros[SP] = registros[SS] | tamanioPS; //D U D A, va + o | 
+                    //cargaMemoria, param, codigo y constantes
+                    
+                    for (int i=tabla[CS>>16][0]; i<tabla[CS>>16][1]; i++){
+                        fread(&memoria[i], 1, 1, archvmx);
+                    }
+                    if (registros[KS] != -1){
+                        for (int i=tabla[KS>>16][0]; i<tabla[KS>>16][1]; i++){
+                            fread(&memoria[i], 1, 1, archvmx);
+                        }
+                    }
+                    if (registros[PS] != -1) {
+                        int ps_base = tabla[registros[PS] >> 16][0]; // Físicamente será 0
+                        int offset_actual = 0;
+                        int offsets_strings[argcSubrutina]; // Arreglo temporal para guardar los offsets
+                        int arg_idx = 0;
+
+                        // 1. Escribir el nombre del archivo .vmx con su '\0'
+                        offsets_strings[arg_idx++] = offset_actual;
+                        for (int i = 0; i <= strlen(archivo_vmx); i++) {
+                            memoria[ps_base + offset_actual++] = archivo_vmx[i];
+                        }
+
+                        // 2. Escribir los parámetros adicionales con su '\0'
+                        if (param_index != -1) {
+                            for (int i = param_index; i < argc; i++) {
+                                offsets_strings[arg_idx++] = offset_actual;
+                                for (int k = 0; k <= strlen(argv[i]); k++) {
+                                    memoria[ps_base + offset_actual++] = argv[i][k];
+                                }
+                            }
+                        }
+
+                        // 3. Escribir el arreglo de punteros (4 bytes por argumento) en formato Big Endian
+                        for (int i = 0; i < argcSubrutina; i++) {
+                            int puntero = offsets_strings[i]; // Los 16 bits altos ya son 0
+                            memoria[ps_base + offset_actual++] = (puntero >> 24) & 0xFF;
+                            memoria[ps_base + offset_actual++] = (puntero >> 16) & 0xFF;
+                            memoria[ps_base + offset_actual++] = (puntero >> 8) & 0xFF;
+                            memoria[ps_base + offset_actual++] = puntero & 0xFF;
+                        }
+                    }
+                    //dissasembler v2:
+
+                    //ejecucion
+                    printf("ejecuto en base al vmx");
+                    //Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[0]);
+                }
+                else{
+                    printf("no alcanza el tamanio en memoria");
+                }
+            }
+            fclose(archvmx);
+
+        } else {
+            printf("Error de validaciondd\n");
+            fclose(archvmx);
         }
-            
-        Ejecucion(0, memoria, registros, tabla, nomRegistro, tamCodigo);
+    } else if (archivo_vmi != NULL) {
+        // Lógica para reanudar desde .vmi
+        //cargar desde el vmi
+        //ejecucion
+        FILE * archvmi = fopen(archivo_vmi, "rb");
+        char ident[5]; char id; char verVmi; short int tamMemoria;
 
-    }
-    else {
-        printf("Error de validacion");
+
+        //fread(ident, sizeof(char)*5, 1, archvmi);
+        for (int i = 0; i < 5; i++){
+            fread(&id, sizeof(char), 1, archvmi);
+            ident[i] = id;
+        }
+        ident[5] = '\0';
+
+        printf("ejecuto desde vmi %s a asd", ident);
+
+
+        if (strcmp("VMI26", ident) == 0){
+            if(fread(&verVmi, sizeof(char), 1, archvmi)==1){
+                fread(&tamMemoria, sizeof(tamMemoria), 1, archvmi);
+                int i;
+                //cargo los registros
+                for (i=0; i<32; i++){
+                    fread(&registros[i], 4, 1, archvmi);
+                }
+                //cargo la tabla
+                for (i=0; i<8; i++){
+                    fread(&tabla[i][0], 2, 1, archvmi);
+                    fread(&tabla[i][1], 2, 1, archvmi);                    
+                }
+                //cargo la memoria
+                for (i=0; i<tamMemoria; i++){
+                    fread(&memoria[i], 1, 1, archvmi);
+                }
+                //dissasembler:
+
+                //ejecuto al toque
+                printf("ejecuto desde un vmi");
+                //Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0]);
+            }
+        }
+    } else {
+        printf("Error: Se requiere archivo .vmx o .vmi\n");
     }
 }
 
-int validarDatos(FILE *arch, short int *tamanioCodigo){
+
+// void main(int argc, char *argv[]){
+//     char memoria[MEMORIA]; //vector de 1 byte
+//     short int tabla[8][2]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
+//     int registros[REGISTROS] = {0}; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
+//     char* nomRegistro[32] = {"IP", "OPC", "OP1","OP2", "LAR", "MAR", "MBR", "SP", "BP", "nada", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "CS", "DS", "ES", "SS", "KS", "PS"};
+//     FILE * archvmx= fopen(argv[1], "rb");
+//     int version; int validar;
+//     short int tamanioSegmentos[10];
+
+//     if (strcmp(strrchr(argv[1], '.'), ".vmx") == 0 && strcmp(strrchr(argv[2], '.'), ".vmi") < 0){ //tengo solo vmx
+//         validar = validarDatos(archvmx, tamanioSegmentos, &version);
+//         if (validar)
+//             if (version == 1){
+//                 int flag;
+//                 if (argc >= 3)
+//                     flag = strcmp(argv[2],"-d")==0;//argv[2]=="-d"; soy un boludo por dios
+//                 else
+//                     flag = 0;
+//                 inicializarTabla(tamanioSegmentos[0], tabla);
+//                 int j=0; char dato;
+
+//                 while (j<tamanioSegmentos[0]){
+//                 fread(&dato, sizeof(dato),1,archvmx);
+//                 memoria[j++] = dato;
+//                 }
+//                 fclose(archvmx);
+
+//                 if(flag){  
+//                     DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro);
+//                 }
+                    
+//                 Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0]);
+//             }
+//             else{
+
+//             }
+//         else 
+//             printf("error de validacion");
+//     }
+//     else if (strcmp(strrchr(argv[1], '.'), ".vmi") ==0 && strcmp(strrchr(argv[2], '.'), NULL)==0){//tengo solo vmi
+        
+//     }
+
+// }
+
+// void mainV1(int argc, char *argv[]){
+//     int flag;
+
+
+//     if (argc >= 3)
+//         flag = strcmp(argv[2],"-d")==0;//argv[2]=="-d"; soy un boludo por dios
+//     else
+//         flag = 0;
+
+//     FILE * arch = fopen(argv[1], "rb");
+
+//     char dato;
+//     //int tamanioArchivo=0;
+//     short int tamCodigo;
+
+//     int validar;
+//     validar = validarDatos(arch, &tamCodigo); //ya me queda el puntero actualizado ?????????
+//     if (validar){
+//         inicializarTabla(tamCodigo, tabla);
+//         int j=0;
+
+//         while (j<tamCodigo){
+//         fread(&dato, sizeof(dato),1,arch);
+//         memoria[j++] = dato;
+//         }
+//         fclose(arch);
+
+//         if(flag){  
+//             DesensamblarEstatico(memoria, tamCodigo, nomRegistro);
+//         }
+            
+//         Ejecucion(0, memoria, registros, tabla, nomRegistro, tamCodigo);
+
+//     }
+//     else {
+//         printf("Error de validacion");
+//     }
+// }
+
+int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
     char dato;
-    char version;
+    //char version;
     char datos[6];
 
     for (int i = 0; i < 5; i++){
@@ -124,17 +401,28 @@ int validarDatos(FILE *arch, short int *tamanioCodigo){
    // printf("%s \n", datos);
 
     if (strcmp(datos, "VMX26") == 0){
-        fread(&version, sizeof(version), 1, arch);
-        if (version == 1){
+        fread(version, sizeof(char), 1, arch);
+        printf("%d", *version);
+        if ((*version) == 1){
             unsigned char byteAlto, byteBajo;
             fread(&byteAlto, 1, 1, arch);
             fread(&byteBajo, 1, 1, arch);
-            *tamanioCodigo = (short int)((byteAlto << 8) | byteBajo); // antes: sizeof(tamanioCodigo)
+            tamanioSegmentos[0] = (short int)((byteAlto << 8) | byteBajo); // antes: sizeof(tamanioCodigo)
+            return 1;
+        }
+        else {
+            printf("version2 ");
+            for (int i=0; i<=5; i++){    
+                unsigned char byteAlto, byteBajo;
+                fread(&byteAlto, 1, 1, arch);
+                fread(&byteBajo, 1, 1, arch);
+                tamanioSegmentos[i] = (short int)((byteAlto << 8) | byteBajo);
+            }
             return 1;
         }
     }
 
-    *tamanioCodigo = -1;
+    tamanioSegmentos[0] = -1;
     return 0;
 }
 
@@ -236,7 +524,12 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         registros[IP] += 1+TopB+TopA;
 
         //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
+        
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro);
+        
+        //preguntar el breakpoint aca antes de pegar la vuelta
+        
+        
         //printf("el valor del cc es:%x \n", registros[CC]);
         //printf("el valor del cc es:");
         //imprimir_binario(registros[CC], 4);
