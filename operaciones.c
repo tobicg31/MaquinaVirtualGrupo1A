@@ -256,16 +256,20 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
     printf("funcion vacia");
 
+void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
+    printf("PUSH");
 }
 void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-printf("funcion vacia");
+    printf("POP");  
 }
 void CALL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-printf("funcion vacia  d");
+    printf("CALL");
 }
 void RET(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32]){
-printf("funcion vacia");
+    printf("RET");
 }
+
+
 // Imprime un entero en formato binario con prefijo 0b según la cantidad de bits
 void imprimir_binario(int valor, int tam_bytes) {
     int total_bits = tam_bytes * 8;
