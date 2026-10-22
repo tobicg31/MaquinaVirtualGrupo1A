@@ -6,7 +6,7 @@
 
 int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo);
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version);
 
 int sumaTamanios(short int tamanio[6]){
     int suma=0;
@@ -165,7 +165,7 @@ void main(int argc, char *argv[]) {
                 registros[CS] = 0x00000000;
                 registros[DS] = 0x00010000;
                 registros[IP] = registros[CS];
-                Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0]);
+                Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0], version);
             }
             else if (version == 2) {
                 // 1. Calcular el Param Segment (Siempre existe si ejecutamos un .vmx)
@@ -243,7 +243,7 @@ void main(int argc, char *argv[]) {
 
                     //ejecucion
                     printf("ejecuto en base al vmx");
-                    //Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[0]);
+                    //Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[0], version);
                 }
                 else{
                     printf("no alcanza el tamanio en memoria");
@@ -294,7 +294,7 @@ void main(int argc, char *argv[]) {
 
                 //ejecuto al toque
                 printf("ejecuto desde un vmi");
-                //Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0]);
+                //Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version);
             }
         }
     } else {
@@ -436,7 +436,7 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]){
         Tabla[i][1] = -1;
     }
 }
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo){
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version){
     int errorSig;
 
     registros[CS] = 0x00000000;
@@ -525,7 +525,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
 
         //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
         
-        Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro);
+        Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version);
         
         //preguntar el breakpoint aca antes de pegar la vuelta
         
