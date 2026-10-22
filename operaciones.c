@@ -4,6 +4,44 @@
 #include <ctype.h>
 #include <stdint.h>
 
+void escribirRegistro(int registros[REGISTROS], int regis, int valor){
+	switch ( (regis>>5) & 0x3 ){
+            case 3:
+		registros[regis] = registros[regis] & 0xFFFF0000 | (valor& 0xFFFF); 
+                break;
+            case 2:
+		registros[regis] = registros[regis] & 0xFFFF00FF | ((valor&0xFF)<<8);
+                break;
+            case 1:
+		registros[regis] = registros[regis] & 0xFFFFFF00 | (valor&0xFF);
+                break;
+            default:
+		registros[regis] = valor;
+                break;
+        }
+}
+
+int32_t leerRegistro(int registros[REGISTROS], int regis){
+	int32_t valor = 0xFFFFFFFF;
+    if (registros[regis] >=0)
+        valor=0; 
+	switch ( (regis>>5) & 0x3 ){
+            case 3:
+                valor |= registros[regis] & 0xFFFF;
+                break;
+            case 2:
+                valor |= (registros[regis]>>8)& 0xFF;
+                break;
+            case 1:
+                valor |= registros[regis] & 0xFF;
+                break;
+            default:
+                valor = registros[regis];
+                break;
+        }
+        return valor;
+}
+
 int32_t leerMemoria32(char memoria[MEMORIA], int dir, int ver, int mod){
     if (ver ==1 ){
         return ((unsigned char)memoria[dir]     << 24) |
