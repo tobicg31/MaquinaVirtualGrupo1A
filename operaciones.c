@@ -315,45 +315,39 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
                 return;
             }
         }
-        else if (op1 >> 24 == 1){// registro
+    }else if (op1 >> 24 == 1){//registro
 
-            int32_t leer = leerRegistro(registros, op1 & 0x1F, ver);
-            escribirMemoria32(memoria, registros[SP], leer, ver, (op1 >> 5) & 0x3);
-            registros[SP] -= 4;
-        }
-        else{ // segundo op inmediato
-          // int dir = tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF)&0xFFFF);
-          // int res = ~leerMemoria32(memoria, dir, ver, (op2>>5)&0x3);
-          // escribirMemoria32(memoria, dir, res, ver, (op2>>5)&0x3);
-        }
+        int32_t leer = leerRegistro(registros,op1 & 0x1F);
+        registros[SP]-=4;
+        escribirMemoria32(memoria, registros[SP] ,leer , ver, (op1>>5)&0x3);
+       
+    }else{//segundo op inmediato
+       registros[SP]-=4;
+       escribirMemoria32(memoria, registros[SP] ,leer , ver, (op1>>5)&0x3);
+       
     }
 }
-void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
-    int contenidoPila;
-    if (registros[SP] == registros[SS] + tabla[registros[op1 & 0x1F] >> 16][1] - tabla[registros[op1 & 0x1F] >> 16][0]){
-        printf("STACK UNDERFLOW");
-        registros[IP] = -1;
-        return;
-    }
-    else{
-        if (op1 >> 24 == 3){
-            if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
-                cargarLAR(op1, registros, tabla); // guardo la dir logica
-                // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
-                // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
-                registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
-                if (validoDirFisica(op1, registros, tabla)){
-                    registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x3);
-                    contenidoPila = leerMemoria32(memoria, registros[SP], ver, 4);
-                    registros[SP] += 4;
-                    escribirMemoria32(memoria, registros[MAR] & 0xFFFF, contenidoPila, ver, (op1 >> 5) & 0x3);
-                }
-                else{
-                    printf("FALLO DE SEGMENTO");
-                    registros[IP] = -1;
-                    return;
-                }
+}
+void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32], int ver){
+  int contenidoPila;
+    if (registros[SP] == (registros[SS] + tabla[registros[op1&0x1F]>>16][1]-tabla[registros[op1&0x1F]>>16][0])){
+    printf("STACK UNDERFLOW");
+    registros[IP] = -1;
+    return ;
+   }
+else {
+    if (op1 >> 24 == 3){
+        if ( tabla[(registros[op1 & 0x1F])>>16][0] != -1 ){ //pregunto si el codigo de segmento es valido
+            cargarLAR(op1, registros, tabla); //guardo la dir logica
+            //en la parte del MAR cuantos bytes:
+            registros[MAR] = 4 << 16; //creo q son 4 bytes porq leemos numeros(?)
+            //traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
+            registros[MAR] |= tabla[registros[LAR]>>16][0] + (registros[LAR] & 0xFFFF);
+            if( validoDirFisica(op1, registros, tabla) ){
+                registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1>>5)&0x3);
+                contenidoPila = leerMemoria32(memoria, registros[SP], ver, 4);
+                escribirMemoria32(memoria,registros[MAR] & 0xFFFF,contenidoPila, ver, (op1>>5)&0x3);
+                registros[SP]+=4;
             }
             else{
                 printf("FALLO DE SEGMENTO");
@@ -365,21 +359,16 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             escribirRegistro(registros, op1 & 0x1F, leerMemoria32(memoria, registros[SP], ver, 4), ver);
             registros[SP] += 4;
         }
-        else{ // segundo op inmediato
-          // int dir = tabla[registros[DS]>>16][0]+((op2 & 0xFFFFFF)&0xFFFF);
-          // int res = ~leerMemoria32(memoria, dir, ver, (op2>>5)&0x3);
-          // escribirMemoria32(memoria, dir, res, ver, (op2>>5)&0x3);
-        }
     }
 }
 void CALL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
-    /*int opIP = 1<<24; //operando de ip
+    int opIP = 1<<24; //operando de ip
     PUSH(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);
-    JMP(op1,op2,flag,memoria,registros,tabla,IPant,nomRegistro,ver);*/
+    JMP(op1,op2,flag,memoria,registros,tabla,IPant,nomRegistro,ver);
 }
 void RET(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
-    /*int opIP = 1<<24; //operando de ip
-    POP(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);*/
+    int opIP = 1<<24; //operando de ip
+    POP(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);
 }
 
 // Imprime un entero en formato binario con prefijo 0b según la cantidad de bits
