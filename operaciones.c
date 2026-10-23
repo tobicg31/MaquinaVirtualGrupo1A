@@ -315,7 +315,8 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
                 return;
             }
         }
-    }else if (op1 >> 24 == 1){//registro
+    else   
+        if (op1 >> 24 == 1){//registro
 
             int32_t leer = leerRegistro(registros, op1 & 0x1F, ver);
             registros[SP] -= 4;
@@ -326,6 +327,7 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
             escribirMemoria32(memoria, registros[SP] , op2&0xFFFFFF, ver, (op1>>5)&0x3);
         }
     }
+}
 
 void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
     int contenidoPila;
