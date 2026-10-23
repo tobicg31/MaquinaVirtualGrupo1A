@@ -373,13 +373,13 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 void CALL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
-    int opIP = 1<<24; //operando de ip
+    /*int opIP = 1<<24; //operando de ip
     PUSH(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);
-    JMP(op1,op2,flag,memoria,registros,tabla,IPant,nomRegistro,ver);
+    JMP(op1,op2,flag,memoria,registros,tabla,IPant,nomRegistro,ver);*/
 }
 void RET(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
-    int opIP = 1<<24; //operando de ip
-    POP(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);
+    /*int opIP = 1<<24; //operando de ip
+    POP(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);*/
 }
 
 // Imprime un entero en formato binario con prefijo 0b según la cantidad de bits
