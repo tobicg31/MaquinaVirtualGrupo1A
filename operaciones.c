@@ -139,12 +139,12 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32], in
     }
 }
 
-void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     disassembler(flag, 0, 0, 0, nomRegistro, IPant, memoria, registros, "STOP");
     registros[IP] = -1;
 }
 
-void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if (op1 >> 24 == 3){
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
@@ -177,52 +177,52 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         registros[IP] = ((op1 & 0xFFFFFF)) & 0xFFFF;
     }
 }
-void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if ((uint32_t)registros[CC] >> 30 == 0){ // N y Z son 0
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JP");
     }
 }
-void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if ((uint32_t)registros[CC] >> 30 == 0b10){ // N==1 Z==0
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JN");
     }
 }
-void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if ((uint32_t)registros[CC] >> 30 == 0b01){ // N==0 Z==1
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JZ");
     }
 }
-void JC(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JC(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if ((uint32_t)registros[CC] >> 29 & 1 == 1){ // C==1
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JC");
     }
 }
-void JV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if ((uint32_t)registros[CC] >> 28 & 1 == 1){ // V==1
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JV");
     }
 }
-void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JNP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if ((uint32_t)registros[CC] >> 30 == 0b10 || (uint32_t)registros[CC] >> 30 == 0b01){ // N o Z == 1
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JNP");
     }
 }
-void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JNN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if (((uint32_t)registros[CC] >> 31) & 1 == 0){ // N == 0
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JNN");
     }
 }
-void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void JNZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if (((uint32_t)registros[CC] >> 30 & 1) == 0)
     { // Z == 0
-        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+        JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
         disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "JNZ");
     }
 }
@@ -244,7 +244,7 @@ void cambiarCC(int32_t valor, int carry, int overflow, int registros[REGISTROS])
     registros[CC] = (int32_t)cc;
 }
 
-void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     if (op1 >> 24 == 3){
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
@@ -283,7 +283,7 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 
-void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int contenidoPila;
     if (registros[SP] - 4 <= registros[SS]){
         printf("STACK OVERFLOW");
@@ -329,7 +329,7 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
     }
 }
 
-void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int contenidoPila;
     if (registros[SP] == (registros[SS] + tabla[registros[op1&0x1F]>>16][1]-tabla[registros[op1&0x1F]>>16][0])){
         printf("STACK UNDERFLOW");
@@ -368,14 +368,14 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
 }
-void CALL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void CALL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int opIP = 1<<24; //operando de ip
-    PUSH(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);
-    JMP(op1,op2,flag,memoria,registros,tabla,IPant,nomRegistro,ver);
+    PUSH(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
+    JMP(op1,op2,flag,memoria,registros,tabla,IPant,nomRegistro,ver,enter);
 }
-void RET(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void RET(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int opIP = 1<<24; //operando de ip
-    POP(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver);
+    POP(opIP, op2, flag, memoria, registros, tabla, IPant, nomRegistro, ver,enter);
 }
 
 // Imprime un entero en formato binario con prefijo 0b según la cantidad de bits
@@ -387,7 +387,7 @@ void imprimir_binario(int valor, int tam_bytes){
         printf("%d", (valor >> b) & 1);
     }
 }
-void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int tiposys = (short int)op1 & 0xFFFF;
 
     int tamanio = (registros[ECX] >> 16) & 0XFFFF;
@@ -403,6 +403,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     int dirfis = tabla[segment][0];
     int cantidad = (registros[ECX] & 0XFFFF); /*cantidad de elementos a leer\escribir*/
     int i;
+    char caracter[2]; 
     if (tiposys == 1){
         for (i = 0; i < cantidad; i++){
             int offset_actual = offset + (i * tamanio);
@@ -518,22 +519,43 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 return;
             }
         }
-        // printf("hola");
-
-        disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
+        
     }
     else if (tiposys == 0){
         printf("\x1b[2J\x1b[H");
+
     }
     else if (tiposys == 3){
     }
     else if (tiposys == 4){
     }
     else if (tiposys == 15){ 
-        // ==F
+        /*llamo a funcion hacebreakpoint() si existe vmi;
+        if (existe vmi){
+            hacebreakpoint(mando );
+        
+         else{
+            printf("No hay vmi");
+        }
+        */
+        scanf("%c",caracter);
+        //no evaluo g porque si se escribe es se sigue ejecutando igual
+        if (caracter[0] == 'c'){
+            //continua ejecucion
+        }
+        else if (caracter[0] == '/n'){
+            //ejecuta paso a paso
+            *enter=1;
+        }
+        else if (caracter[0] == 'q'){
+            //termina ejecucion
+            registros[IP] = -1;
+        }
+        
     }
+    disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
 }
-void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int valor_fuente = 0;
 
     // 1. Obtener valor de la fuente (op2)
@@ -596,7 +618,7 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     cambiarCC(valor_fuente, 0, 0, registros); // MOV afecta al registro CC[cite: 4]
 }
 
-void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int32_t valor_fuente = 0;
     int32_t valor_destino = 0;
 
@@ -665,7 +687,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     cambiarCC((int32_t)res_signed, carry, overflow, registros); //
 }
 
-void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int32_t valor_fuente = 0;
     int32_t valor_destino = 0;
     int64_t res_signed;
@@ -742,7 +764,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     cambiarCC(resultado_32, carry, overflow, registros);
 }
 
-void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int32_t valor_fuente = 0;
     int32_t valor_destino = 0;
     int64_t res_signed;
@@ -814,7 +836,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     cambiarCC(resultado_32, carry, overflow, registros);
 }
 
-void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int32_t valor_fuente = 0;
     int32_t valor_destino = 0;
     int64_t res_signed;
@@ -895,7 +917,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 
-void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int32_t valor_fuente = 0;
     int32_t valor_destino = 0;
     int64_t res_signed;
@@ -969,7 +991,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     cambiarCC(resultado_32, carry, overflow, registros);
 }
 
-void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
 
     if (op1 >> 24 == 3){ // primer op de memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
@@ -1069,7 +1091,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
     }
 }
-void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
 
     if (op1 >> 24 == 3){ // primer op de memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
@@ -1173,7 +1195,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
         cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
     }
 }
-void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
 
     if (op1 >> 24 == 3){ // primer op de memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
@@ -1277,16 +1299,16 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
     }
 }
-void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void SWAP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     // Se llama a XOR tres veces con flag en 0 para que no ensucie la pantalla
-    XOR(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
-    XOR(op2, op1, 0, memoria, registros, tabla, IPant, nomRegistro, ver); // Se invierte el orden
-    XOR(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver);
+    XOR(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver, enter);
+    XOR(op2, op1, 0, memoria, registros, tabla, IPant, nomRegistro, ver, enter); // Se invierte el orden
+    XOR(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver, enter);
 
     // Se imprime la instrucción real una sola vez
     disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "SWAP");
 }
-void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int i, primerbit, direfisopa, direfisopb, valorA;
     int64_t clonconsigno;
     uint64_t clonsinsigno;
@@ -1537,7 +1559,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
 }
 
-void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int i, direfisopa, direfisopb;
     uint64_t clonsinsigno;
     clonsinsigno = 0; // en SHR no hay overflow
@@ -1706,7 +1728,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
 }
-void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int i, direfisopa, direfisopb, bitdesigno;
     uint64_t clonsinsigno;
     clonsinsigno = 0; // en SHR no hay overflow
@@ -1885,7 +1907,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
 }
-void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int32_t valor_fuente = 0;
     int32_t valor_destino = 0;
 
@@ -1935,7 +1957,7 @@ void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "LDL");
     }
 }
-void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
     int32_t valor_fuente = 0;
     int32_t valor_destino = 0;
 
@@ -1985,7 +2007,7 @@ void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         disassembler(flag, 2, op1, op2, nomRegistro, IPant, memoria, registros, "LDH");
     }
 }
-void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver){
+void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter){
 
     if (op1 >> 24 == 3){ // primer op de memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
