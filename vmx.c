@@ -439,12 +439,12 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]){
     }
 }
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version){
-    int errorSig;
+    int errorSig,enter;
 
     //registros[CS] = 0x00000000;
     //registros[DS] = 0x00010000;
     //registros[IP] = registros[CS];
-    void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32], int ver) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, PUSH, POP, CALL, RET, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
+    void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32], int ver,int *enter) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, PUSH, POP, CALL, RET, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
     int IPant; 
     
@@ -527,7 +527,13 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
 
         //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
         
-        Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version);
+        if (enter){
+            enter=0;
+            Operaciones[0](0XF, registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter);
+            
+        }
+        Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter);
+        
         
         //preguntar el breakpoint aca antes de pegar la vuelta
         
