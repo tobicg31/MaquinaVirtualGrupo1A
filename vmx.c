@@ -6,7 +6,7 @@
 
 int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version);
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version, char *archivo_vmi);
 
 int sumaTamanios(short int tamanio[6]){
     int suma=0;
@@ -184,7 +184,7 @@ void main(int argc, char *argv[]) {
                 registros[CS] = 0x00000000;
                 registros[DS] = 0x00010000;
                 registros[IP] = registros[CS];
-                Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0], version);
+                Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0], version, archivo_vmi);
             }
             else if (version == 2) {
                 // 1. Calcular el Param Segment (Siempre existe si ejecutamos un .vmx)
@@ -458,13 +458,13 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]){
         Tabla[i][1] = -1;
     }
 }
-void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version){
-    int errorSig,enter;
+void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version, char *archivo_vmi){
+    int errorSig,enter=0;
 
     //registros[CS] = 0x00000000;
     //registros[DS] = 0x00010000;
     //registros[IP] = registros[CS];
-    void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32], int ver,int *enter) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, PUSH, POP, CALL, RET, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
+    void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32], int ver,int *enter, char *archivo_vmi) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, PUSH, POP, CALL, RET, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
     int IPant; 
     
@@ -542,22 +542,20 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         registros[OP2] = TopB <<24 | opB;
 
         IPant = registros[IP];
-
-        registros[IP] += 1+TopB+TopA;
-
-        //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
-        
+       
         if (enter){
             enter=0;
-            Operaciones[0](0XF, registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter);
+            Operaciones[0](0XF, registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter, archivo_vmi);
             
         }
-        Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter);
+         if (registros[IP]!=-1){ //si no me escribieron q en breakpoint, sigo ejecutando
+         registros[IP] += 1+TopB+TopA; 
+        //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
+        Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter, archivo_vmi);
         
+        }
         
-        //preguntar el breakpoint aca antes de pegar la vuelta
-        
-        
+         
         //printf("el valor del cc es:%x \n", registros[CC]);
         //printf("el valor del cc es:");
         //imprimir_binario(registros[CC], 4);
@@ -565,7 +563,6 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
         //printf("aca \n");
         
-
     }while (!errorSig && registros[IP]!=-1 && registros[IP]<tamCodigo);
 
 }

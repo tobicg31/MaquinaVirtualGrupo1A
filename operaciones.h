@@ -67,3 +67,4 @@ void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);
 int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]);
 int32_t leerMemoria32(char memoria[MEMORIA], int dir, int ver, int mod);
 void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor, int ver, int mod);
+void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],char *archivo_vmi);
