@@ -565,10 +565,43 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         printf("\x1b[2J\x1b[H");
 
     }
-    else if (tiposys == 3){
+    else if (tiposys == 3){ //STRING READ
+    //scanf cadena
+    //desde edx coloco y me muevo ecx veces, o si ecx==-1 hasta que lea un \0
+    char cadena[256];
+    scanf("%s", cadena);
+    int i=0, dir=registros[EDX];
+
+    if (registros[ECX] == -1){
+        while (cadena[i] != '\0'){
+            escribirMemoria32(memoria, dir, cadena[i], ver, 1);
+            dir++;
+            i++;
+        }
+        escribirMemoria32(memoria, dir, '\0', ver, 1);
     }
-    else if (tiposys == 4){
+    else{
+        for (i = 0; i <= registros[ECX]; i++){
+            escribirMemoria32(memoria, dir, cadena[i], ver, 1);
+            dir++;
+        }
+        escribirMemoria32(memoria, dir, '\0', ver, 1);
     }
+    }
+    
+    else if (tiposys == 4){ //STRING WRITE
+        int dir=registros[EDX];
+        int i=0;
+        char c;
+        c= leerMemoria32(memoria, dir, ver, 1);
+            while (c != '\0'){
+                printf("%c", c);
+                dir++;
+                c= leerMemoria32(memoria, dir, ver, 1);
+            }
+            printf("\n");
+        }
+       
  disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
 }
 void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
