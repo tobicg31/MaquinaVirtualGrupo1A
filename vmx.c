@@ -127,6 +127,20 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
     }
 }
 
+void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, char *nomRegistro[32], int *enter, char *archivo_vmi){
+    int argv=3<<24; //memoria apuntando al 0
+    int RET = -1;
+    if (tamanioPS>0){
+        PUSH(argv, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(argcSubrutina, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+    }else{
+        PUSH(-1, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(0, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+    }
+}
+
 void main(int argc, char *argv[]) {
     // 1. Variables para identificar qué parámetros se ingresaron
     char *archivo_vmx = NULL;
@@ -260,12 +274,15 @@ void main(int argc, char *argv[]) {
                     }
                     //ejecucion
                     printf("ejecuto en base al vmx");
-                    registros[IP] = (tabla[registros[CS]>>16][0])<<16;
-                    registros[IP] |= tamOrdenados[5];
                     //dissasembler v2:
                     if(flag)
                         Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro);
-                    Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version);
+
+                    //inicializo pila sub principal:
+                    int e;
+                    inicializoPila(memoria, tabla, registros, tamanioPS, argcSubrutina, nomRegistro, &e, archivo_vmi);
+                        
+                    Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version, archivo_vmi);
                 }
                 else{
                     printf("no alcanza el tamanio en memoria");
@@ -316,7 +333,7 @@ void main(int argc, char *argv[]) {
                 //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
                 printf("ejecuto desde un vmi");
-                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version);
+                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version, archivo_vmi);
             }
         }
     } else {
@@ -464,6 +481,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
     //registros[CS] = 0x00000000;
     //registros[DS] = 0x00010000;
     //registros[IP] = registros[CS];
+    
     void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32], int ver,int *enter, char *archivo_vmi) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, PUSH, POP, CALL, RET, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
     int IPant; 

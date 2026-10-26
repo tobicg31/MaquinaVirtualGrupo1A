@@ -202,7 +202,7 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32], in
 }
 
 void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
-    disassembler(flag, 0, 0, 0, nomRegistro, IPant, memoria, registros, "STOP");
+    
     registros[IP] = -1;
 }
 
@@ -654,7 +654,6 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             printf("\n");
         }
        
- disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
 }
 void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
     int valor_fuente = 0;
