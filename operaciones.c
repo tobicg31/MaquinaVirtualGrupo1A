@@ -329,9 +329,9 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         escribirRegistro(registros, op1&0x1F, ~leerRegistro(registros, op1&0x1F, ver), ver);
     }
     else{ // segundo op inmediato
-        int dir = tabla[registros[DS] >> 16][0] + ((op2 & 0xFFFFFF) & 0xFFFF);
-        int res = ~leerMemoria32(memoria, dir, ver, (op2 >> 5) & 0x8);
-        escribirMemoria32(memoria, dir, res, ver, (op2 >> 5) & 0x8);
+        int dir = tabla[registros[DS] >> 16][0] + ((op1 & 0xFFFFFF) & 0xFFFF);
+        int res = ~leerMemoria32(memoria, dir, ver, (op1 >> 5) & 0x8);
+        escribirMemoria32(memoria, dir, res, ver, (op1 >> 5) & 0x8);
     }
 }
 
@@ -372,11 +372,11 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
 
             int32_t leer = leerRegistro(registros, op1 & 0x1F, ver);
             registros[SP] -= 4;
-            escribirMemoria32(memoria, registros[SP], leer, ver, (op1 >> 5) & 0x8);
+            escribirMemoria32(memoria, registros[SP], leer, ver, 4);
         }
         else{ // segundo op inmediato
             registros[SP]-=4;
-            escribirMemoria32(memoria, registros[SP] , op2&0xFFFFFF, ver, (op1>>5)&0x8);
+            escribirMemoria32(memoria, registros[SP] , op1&0xFFFFFF, ver, 4);
         }
     }
 }
