@@ -120,7 +120,7 @@ void imprimirOperando(int Top, int op, char *nomRegistro[32], char cadena[100], 
         switch (Top){
         case 1:
             char registro[3];
-            registro[0]=nomRegistro[1];
+            registro[0] = nomRegistro[op & 0x1F][1];
             registro[2]='\0';
             //printf("%s", nomRegistro[op & 0x1F]);
             switch((op>>5)&0x3){
@@ -185,13 +185,13 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32], in
             printf("\n");
             break;
         case 1:
-            imprimirOperando(tOp, op1, nomRegistro, "", ver);
+            imprimirOperando(tOp, op1, nomRegistro, cadena, ver);
             printf("\n");
             break;
         case 2:
-            imprimirOperando(tOp, op1, nomRegistro,"", ver);
+            imprimirOperando(tOp, op1, nomRegistro,cadena, ver);
             printf(",");
-            imprimirOperando(tOp, op2, nomRegistro, "", ver);
+            imprimirOperando(tOp, op2, nomRegistro, cadena, ver);
             printf("\n");
             break;
         case 4:

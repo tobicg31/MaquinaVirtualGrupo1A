@@ -48,25 +48,6 @@ void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short in
     }
 }
 
-void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
-    int ip; int IPant; char cadena[100]; int i; int registrosMentira[REGISTROS] = {0};
-    if(tamConst>0){
-        ip = tabla[registros[CS]>>16][0];
-        while (ip<(tamConst+tabla[registros[CS]>>16][0])){
-            IPant=ip; i=0;
-            while (memoria[ip] != '\0'){
-                cadena[i] += memoria[ip++];
-                i++;
-            }
-            registrosMentira[IP]=ip;
-            cadena[i] += '\0';
-            disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria, registrosMentira, "", cadena, 2);
-        }
-    }
-    printf(">");
-    DesensamblarEstatico(memoria, tamCodigo, nomRegistro, 2);
-}
-
 void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
@@ -123,8 +104,28 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
         int op2_completo = (cant_operandos == 2) ? (TopB << 24) | opB : 0;
 
         // 3. Llamar a la función existente (forzando flag=1 para que imprima)
-        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], "", ver);
+        char dummy[100];
+        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], dummy, ver);
     }
+}
+
+void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
+    int ip; int IPant; char cadena[100]; int i; int registrosMentira[REGISTROS] = {0};
+    if(tamConst>0){
+        ip = tabla[registros[CS]>>16][0];
+        while (ip<(tamConst+tabla[registros[CS]>>16][0])){
+            IPant=ip; i=0;
+            while (memoria[ip] != '\0'){
+                cadena[i] += memoria[ip++];
+                i++;
+            }
+            registrosMentira[IP]=ip;
+            cadena[i] += '\0';
+            disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria, registrosMentira, "", cadena, 2);
+        }
+    }
+    printf(">");
+    DesensamblarEstatico(memoria, tamCodigo, nomRegistro, 2);
 }
 
 void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, char *nomRegistro[32], int *enter, char *archivo_vmi){
