@@ -47,25 +47,6 @@ void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short in
     }
 }
 
-void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
-    int ip; int IPant; char cadena[100]; int i; int registrosMentira[REGISTROS] = {0};
-    if(tamConst>0){
-        ip = tabla[registros[CS]>>16][0];
-        while (ip<(tamConst+tabla[registros[CS]>>16][0])){
-            IPant=ip; i=0;
-            while (memoria[ip] != '\0'){
-                cadena[i] += memoria[ip++];
-                i++;
-            }
-            registrosMentira[IP]=ip;
-            cadena[i] += '\0';
-            disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria, registrosMentira, "", cadena, 2);
-        }
-    }
-    printf(">");
-    DesensamblarEstatico(memoria, tamCodigo, nomRegistro, 2);
-}
-
 void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
@@ -122,7 +103,41 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
         int op2_completo = (cant_operandos == 2) ? (TopB << 24) | opB : 0;
 
         // 3. Llamar a la función existente (forzando flag=1 para que imprima)
-        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], "", ver);
+        char dummy[100];
+        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], dummy, ver);
+    }
+}
+
+void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
+    int ip; int IPant; char cadena[100]; int i; int registrosMentira[REGISTROS] = {0};
+    if(tamConst>0){
+        ip = tabla[registros[CS]>>16][0];
+        while (ip<(tamConst+tabla[registros[CS]>>16][0])){
+            IPant=ip; i=0;
+            while (memoria[ip] != '\0'){
+                cadena[i] += memoria[ip++];
+                i++;
+            }
+            registrosMentira[IP]=ip;
+            cadena[i] += '\0';
+            disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria, registrosMentira, "", cadena, 2);
+        }
+    }
+    printf(">");
+    DesensamblarEstatico(memoria, tamCodigo, nomRegistro, 2);
+}
+
+void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, char *nomRegistro[32], int *enter, char *archivo_vmi){
+    int argv=3<<24; //memoria apuntando al 0
+    int RET = -1;
+    if (tamanioPS>0){
+        PUSH(argv, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(argcSubrutina, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+    }else{
+        PUSH(-1, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(0, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
     }
 }
 
@@ -255,11 +270,14 @@ void main(int argc, char *argv[]) {
                     }
                     //ejecucion
                     printf("ejecuto en base al vmx");
-                    registros[IP] = (tabla[registros[CS]>>16][0])<<16;
-                    registros[IP] |= tamOrdenados[5];
                     //dissasembler v2:
                     if(flag)
                         Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro);
+
+                    //inicializo pila sub principal:
+                    int e;
+                    inicializoPila(memoria, tabla, registros, tamanioPS, argcSubrutina, nomRegistro, &e, archivo_vmi);
+                        
                     Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version, archivo_vmi);
                 }
                 else{
@@ -459,6 +477,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
     //registros[CS] = 0x00000000;
     //registros[DS] = 0x00010000;
     //registros[IP] = registros[CS];
+    
     void (*Operaciones[32])(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],int IPant, char* nomRegistro[32], int ver,int *enter, char *archivo_vmi) = {SYS, JMP, JP, JN, JZ, JC, JV, JNP, JNN, JNZ, NOT, PUSH, POP, CALL, RET, STOP, MOV, ADD, SUB, MUL, DIV, CMP, AND, OR, XOR, SWAP, SHL, SHR, SAR, LDL, LDH, RND};
 
     int IPant; 

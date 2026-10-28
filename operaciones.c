@@ -120,7 +120,7 @@ void imprimirOperando(int Top, int op, char *nomRegistro[32], char cadena[100], 
         switch (Top){
         case 1:
             char registro[3];
-            registro[0]=nomRegistro[1];
+            registro[0] = nomRegistro[op & 0x1F][1];
             registro[2]='\0';
             //printf("%s", nomRegistro[op & 0x1F]);
             switch((op>>5)&0x3){
@@ -185,13 +185,13 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32], in
             printf("\n");
             break;
         case 1:
-            imprimirOperando(tOp, op1, nomRegistro, "", ver);
+            imprimirOperando(tOp, op1, nomRegistro, cadena, ver);
             printf("\n");
             break;
         case 2:
-            imprimirOperando(tOp, op1, nomRegistro,"", ver);
+            imprimirOperando(tOp, op1, nomRegistro,cadena, ver);
             printf(",");
-            imprimirOperando(tOp, op2, nomRegistro, "", ver);
+            imprimirOperando(tOp, op2, nomRegistro, cadena, ver);
             printf("\n");
             break;
         case 4:
@@ -202,7 +202,7 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32], in
 }
 
 void STOP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
-    disassembler(flag, 0, 0, 0, nomRegistro, IPant, memoria, registros, "STOP");
+    
     registros[IP] = -1;
 }
 
@@ -329,9 +329,9 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         escribirRegistro(registros, op1&0x1F, ~leerRegistro(registros, op1&0x1F, ver), ver);
     }
     else{ // segundo op inmediato
-        int dir = tabla[registros[DS] >> 16][0] + ((op2 & 0xFFFFFF) & 0xFFFF);
-        int res = ~leerMemoria32(memoria, dir, ver, (op2 >> 5) & 0x8);
-        escribirMemoria32(memoria, dir, res, ver, (op2 >> 5) & 0x8);
+        int dir = tabla[registros[DS] >> 16][0] + ((op1 & 0xFFFFFF) & 0xFFFF);
+        int res = ~leerMemoria32(memoria, dir, ver, (op1 >> 5) & 0x8);
+        escribirMemoria32(memoria, dir, res, ver, (op1 >> 5) & 0x8);
     }
 }
 
@@ -372,11 +372,11 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
 
             int32_t leer = leerRegistro(registros, op1 & 0x1F, ver);
             registros[SP] -= 4;
-            escribirMemoria32(memoria, registros[SP], leer, ver, (op1 >> 5) & 0x8);
+            escribirMemoria32(memoria, registros[SP], leer, ver, 4);
         }
         else{ // segundo op inmediato
             registros[SP]-=4;
-            escribirMemoria32(memoria, registros[SP] , op2&0xFFFFFF, ver, (op1>>5)&0x8);
+            escribirMemoria32(memoria, registros[SP] , op1&0xFFFFFF, ver, 4);
         }
     }
 }
@@ -659,7 +659,6 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             }
         }
        
- disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros,"SYS");
 }
 void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
     int valor_fuente = 0;
