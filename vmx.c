@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "operaciones.h"
 
-int validarDatos(char * arch, short int tamanioSegmentos[10], char *version);
+int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version, char *archivo_vmi);
 
@@ -178,7 +178,7 @@ void main(int argc, char *argv[]) {
 
     // 4. Lógica principal de carga y ejecución
     if (archivo_vmx != NULL) { 
-        char *archvmx = fopen(archivo_vmx, "rb");
+        FILE *archvmx = fopen(archivo_vmx, "rb");
         if (!archvmx) {
             printf("Error al abrir el archivo %s\n", archivo_vmx);
             return;
@@ -295,7 +295,7 @@ void main(int argc, char *argv[]) {
         // Lógica para reanudar desde .vmi
         //cargar desde el vmi
         //ejecucion
-        char * archvmi = fopen(archivo_vmi, "rb");
+        FILE * archvmi = fopen(archivo_vmi, "rb");
         char ident[5]; char id; char verVmi; short int tamMemoria;
 
 
@@ -423,7 +423,7 @@ void main(int argc, char *argv[]) {
 //     }
 // }
 
-int validarDatos(char *arch, short int tamanioSegmentos[10], char *version){
+int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
     char dato;
     //char version;
     char datos[6];
