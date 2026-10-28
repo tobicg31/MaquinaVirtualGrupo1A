@@ -337,10 +337,10 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 
 void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
     int contenidoPila;
-    if (registros[SP] - 4 <= registros[SS]){
-        printf("STACK OVERFLOW");
-        registros[IP] = -1;
-        return;
+    int sp = registros[SP] - 4;
+    int dirFis = dirFisica(sp, tabla, 4);
+    if (dirFis < 0 || (sp >> 16) != (registros[SS] >> 16)){    // el cambio de índice detecta pasarse del SS
+        printf("STACK OVERFLOW"); registros[IP] = -1; return;
     }
     else{
         if (op1 >> 24 == 3){
@@ -383,11 +383,10 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
 
 void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
     int contenidoPila;
-    if (registros[SP] == (registros[SS] + tabla[registros[op1&0x1F]>>16][1]-tabla[registros[op1&0x1F]>>16][0])){
-        printf("STACK UNDERFLOW");
-        registros[IP] = -1;
+   int dirFis = dirFisica(registros[SP], tabla, 4);
+    if (dirFis < 0){ printf("STACK UNDERFLOW"); registros[IP] = -1; 
         return;
-    }
+     }
     else{
         if (op1 >> 24 == 3){
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
@@ -398,7 +397,7 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op1, registros, tabla)){
                     registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x8);
-                    contenidoPila = leerMemoria32(memoria, registros[SP], ver, 4);
+                    contenidoPila = leerMemoria32(memoria, dirFis, ver, 4);
                     escribirMemoria32(memoria, registros[MAR] & 0xFFFF, contenidoPila, ver, (op1 >> 5) & 0x8);
                     registros[SP] += 4;
                 }
@@ -415,7 +414,7 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             }
         }
         else if (op1 >> 24 == 1){ // registro
-            escribirRegistro(registros, op1 & 0x1F, leerMemoria32(memoria, registros[SP], ver, 4), ver);
+            escribirRegistro(registros, op1 & 0x1F, leerMemoria32(memoria, dirFis, ver, 4), ver);
             registros[SP] += 4;
         }
     }
@@ -660,7 +659,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             }
         }
        
- disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
+ disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros,"SYS");
 }
 void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
     int valor_fuente = 0;

@@ -214,18 +214,14 @@ void main(int argc, char *argv[]) {
                 if (sumaTamanios(tamOrdenados) <= tam_memoria_kib*1024){
                     // 3. Inicializar la tabla y los registros de segmentos
                     inicializarTablaV2(registros, tabla, tamOrdenados);
-                    
-                    registros[IP] = tabla[CS>>16][0]<<16 | tamanioSegmentos[5];
-                    registros[SP] = registros[SS] | tamanioPS; //D U D A, va + o | 
-                    //cargaMemoria, param, codigo y constantes
-                    
-                    for (int i=tabla[CS>>16][0]; i<tabla[CS>>16][1]; i++){
-                        fread(&memoria[i], 1, 1, archvmx);
-                    }
+                    registros[IP] = registros[CS] | tamanioSegmentos[5];   // índice de CS + offset del entry point
+                    registros[SP] = registros[SS] + tamanioSegmentos[3];   // tope de la pila: base + tamaño del SS
+
+                    int base = tabla[registros[CS] >> 16][0], tam = tabla[registros[CS] >> 16][1];
+                    fread(&memoria[base], 1, tam, archvmx);                // base .. base+tamaño
                     if (registros[KS] != -1){
-                        for (int i=tabla[KS>>16][0]; i<tabla[KS>>16][1]; i++){
-                            fread(&memoria[i], 1, 1, archvmx);
-                        }
+                        base = tabla[registros[KS] >> 16][0]; tam = tabla[registros[KS] >> 16][1];
+                        fread(&memoria[base], 1, tam, archvmx);
                     }
                     if (registros[PS] != -1) {
                         int ps_base = tabla[registros[PS] >> 16][0]; // Físicamente será 0
@@ -265,7 +261,7 @@ void main(int argc, char *argv[]) {
                     //dissasembler v2:
                     if(flag)
                         Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro);
-                    Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version);
+                    Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version, archivo_vmi);
                 }
                 else{
                     printf("no alcanza el tamanio en memoria");
@@ -316,7 +312,7 @@ void main(int argc, char *argv[]) {
                 //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
                 printf("ejecuto desde un vmi");
-                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version);
+                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version, archivo_vmi);
             }
         }
     } else {
@@ -476,7 +472,10 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         //memoria[IP] = 50 / 01010000
         //registro[opc] = 10000
         //printf("La ip es:%d \n", registros[IP]);
-        registros[OPC] = memoria[(registros[IP])] & 0x1F; // me guardo los 5 bits del codigo de operacio
+        int ipFis = dirFisica(registros[IP], tabla, 1);
+        if (ipFis < 0){ printf("FALLO DE SEGMENTO"); registros[IP] = -1; break; }
+        registros[OPC] = memoria[ipFis] & 0x1F;
+        /* reemplazá memoria[registros[IP]] por memoria[ipFis], y memoria[registros[IP]+1] por memoria[ipFis+1], etc. */
         errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
 
         if (errorSig) {
