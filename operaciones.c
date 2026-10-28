@@ -387,6 +387,12 @@ void imprimir_binario(int valor, int tam_bytes){
         printf("%d", (valor >> b) & 1);
     }
 }
+// dir lógica (segmento<<16 | offset) -> índice físico, o -1 si cae fuera del segmento
+int dirFisica(int dir, short int tabla[8][2], int bytes){
+    int seg = (dir >> 16) & 0xFFFF, off = dir & 0xFFFF;
+    if (seg >= 8 || tabla[seg][0] == -1 || off + bytes > tabla[seg][1]) return -1;
+    return tabla[seg][0] + off;
+}
 void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],char *archivo_vmi){
     FILE * f = fopen(archivo_vmi, "wb");
     printf("[BREAKPOINT] se genera imagen en %s\n", archivo_vmi);
@@ -421,8 +427,12 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
          char caracter[2]; 
          scanf("%c",caracter);
         //no evaluo g porque si se escribe 'g' se sigue ejecutando igual
-
-        if (caracter[0] == '\n'){
+        scanf("%c", caracter);
+        if (caracter[0] != '\n'){
+            int c; 
+            while ((c = getchar()) != '\n' && c != EOF) ;
+        }
+        else if (caracter[0] == '\n'){
             //ejecuta paso a paso
             *enter=1;
         }
@@ -432,6 +442,10 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
         return;
     }
+    }else if (tiposys == 0){
+        printf("\x1b[2J\x1b[H");
+        return;
+
     }
     int tamanio = (registros[ECX] >> 16) & 0XFFFF;
     int dirlog = registros[EDX]; // desde donde parto
@@ -482,6 +496,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                         }
                     }
                 }
+                int c; while ((c = getchar()) != '\n' && c != EOF) ;
                 // guardar en el MBR el valor:
                 registros[MBR] = datoleido;
                 for (int byte = 0; byte < tamanio; byte++){ // iteracion que guarda el (tipo de dato)valor del dato en memoria
@@ -548,7 +563,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     printf(" ");
                 }
                 if (formato & 0x01){ // bit 0: Decimal
-                    printf("%d", (unsigned)valor);
+                    printf("%d", valor);
                 }
 
                 printf("\n"); // bajo de linea por si tengo q escribir otro
@@ -561,45 +576,36 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
         
     }
-    else if (tiposys == 0){
-        printf("\x1b[2J\x1b[H");
-
-    }
     else if (tiposys == 3){ //STRING READ
     //scanf cadena
     //desde edx coloco y me muevo ecx veces, o si ecx==-1 hasta que lea un \0
-    char cadena[256];
-    scanf("%s", cadena);
-    int i=0, dir=registros[EDX];
+    int dir = dirfis + offset;     // dirfis ya es la base validada del segmento
 
-    if (registros[ECX] == -1){
-        while (cadena[i] != '\0'){
-            escribirMemoria32(memoria, dir, cadena[i], ver, 1);
-            dir++;
-            i++;
-        }
-        escribirMemoria32(memoria, dir, '\0', ver, 1);
+    // SYS 3
+    char cadena[1024];
+    if (fgets(cadena, sizeof(cadena), stdin) == NULL) cadena[0] = '\0';
+    cadena[strcspn(cadena, "\n")] = '\0';
+    int n = strlen(cadena);
+    if (registros[ECX] != -1 && n > registros[ECX]) n = registros[ECX];
+    if (offset + n + 1 > tabla[segment][1]){         // n caracteres + el '\0'
+        printf("FALLO DE SEGMENTO");
+        registros[IP] = -1;
+        return;
     }
-    else{
-        for (i = 0; i <= registros[ECX]; i++){
-            escribirMemoria32(memoria, dir, cadena[i], ver, 1);
-            dir++;
-        }
-        escribirMemoria32(memoria, dir, '\0', ver, 1);
-    }
-    }
-    
-    else if (tiposys == 4){ //STRING WRITE
-        int dir=registros[EDX];
+    for (int k = 0; k < n; k++)
+        escribirMemoria32(memoria, dir + k, cadena[k], ver, 1);
+    escribirMemoria32(memoria, dir + n, '\0', ver, 1);
+    } else if (tiposys == 4){ //STRING WRITE
+        int dir = dirfis + offset;
         int i=0;
+        int limite = dir + tabla[segment][1];  
         char c;
         c= leerMemoria32(memoria, dir, ver, 1);
-            while (c != '\0'){
+            while ( limite > dir && c != '\0'){
                 printf("%c", c);
                 dir++;
                 c= leerMemoria32(memoria, dir, ver, 1);
             }
-            printf("\n");
         }
        
  disassembler(flag, 1, op1, op2, nomRegistro, IPant, memoria, registros, "SYS");
