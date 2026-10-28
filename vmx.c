@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "operaciones.h"
 
-int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
+int validarDatos(char * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version, char *archivo_vmi);
 
@@ -178,7 +178,7 @@ void main(int argc, char *argv[]) {
 
     // 4. Lógica principal de carga y ejecución
     if (archivo_vmx != NULL) { 
-        FILE *archvmx = fopen(archivo_vmx, "rb");
+        char *archvmx = fopen(archivo_vmx, "rb");
         if (!archvmx) {
             printf("Error al abrir el archivo %s\n", archivo_vmx);
             return;
@@ -229,18 +229,14 @@ void main(int argc, char *argv[]) {
                 if (sumaTamanios(tamOrdenados) <= tam_memoria_kib*1024){
                     // 3. Inicializar la tabla y los registros de segmentos
                     inicializarTablaV2(registros, tabla, tamOrdenados);
-                    
-                    registros[IP] = tabla[CS>>16][0]<<16 | tamanioSegmentos[5];
-                    registros[SP] = registros[SS] | tamanioPS; //D U D A, va + o | 
-                    //cargaMemoria, param, codigo y constantes
-                    
-                    for (int i=tabla[CS>>16][0]; i<tabla[CS>>16][1]; i++){
-                        fread(&memoria[i], 1, 1, archvmx);
-                    }
+                    registros[IP] = registros[CS] | tamanioSegmentos[5];   // índice de CS + offset del entry point
+                    registros[SP] = registros[SS] + tamanioSegmentos[3];   // tope de la pila: base + tamaño del SS
+
+                    int base = tabla[registros[CS] >> 16][0], tam = tabla[registros[CS] >> 16][1];
+                    fread(&memoria[base], 1, tam, archvmx);                // base .. base+tamaño
                     if (registros[KS] != -1){
-                        for (int i=tabla[KS>>16][0]; i<tabla[KS>>16][1]; i++){
-                            fread(&memoria[i], 1, 1, archvmx);
-                        }
+                        base = tabla[registros[KS] >> 16][0]; tam = tabla[registros[KS] >> 16][1];
+                        fread(&memoria[base], 1, tam, archvmx);
                     }
                     if (registros[PS] != -1) {
                         int ps_base = tabla[registros[PS] >> 16][0]; // Físicamente será 0
@@ -299,7 +295,7 @@ void main(int argc, char *argv[]) {
         // Lógica para reanudar desde .vmi
         //cargar desde el vmi
         //ejecucion
-        FILE * archvmi = fopen(archivo_vmi, "rb");
+        char * archvmi = fopen(archivo_vmi, "rb");
         char ident[5]; char id; char verVmi; short int tamMemoria;
 
 
@@ -348,7 +344,7 @@ void main(int argc, char *argv[]) {
 //     short int tabla[8][2]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
 //     int registros[REGISTROS] = {0}; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
 //     char* nomRegistro[32] = {"IP", "OPC", "OP1","OP2", "LAR", "MAR", "MBR", "SP", "BP", "nada", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "CS", "DS", "ES", "SS", "KS", "PS"};
-//     FILE * archvmx= fopen(argv[1], "rb");
+//     char * archvmx= fopen(argv[1], "rb");
 //     int version; int validar;
 //     short int tamanioSegmentos[10];
 
@@ -397,7 +393,7 @@ void main(int argc, char *argv[]) {
 //     else
 //         flag = 0;
 
-//     FILE * arch = fopen(argv[1], "rb");
+//     char * arch = fopen(argv[1], "rb");
 
 //     char dato;
 //     //int tamanioArchivo=0;
@@ -427,7 +423,7 @@ void main(int argc, char *argv[]) {
 //     }
 // }
 
-int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
+int validarDatos(char *arch, short int tamanioSegmentos[10], char *version){
     char dato;
     //char version;
     char datos[6];
@@ -495,7 +491,10 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         //memoria[IP] = 50 / 01010000
         //registro[opc] = 10000
         //printf("La ip es:%d \n", registros[IP]);
-        registros[OPC] = memoria[(registros[IP])] & 0x1F; // me guardo los 5 bits del codigo de operacio
+        int ipFis = dirFisica(registros[IP], tabla, 1);
+        if (ipFis < 0){ printf("FALLO DE SEGMENTO"); registros[IP] = -1; break; }
+        registros[OPC] = memoria[ipFis] & 0x1F;
+        /* reemplazá memoria[registros[IP]] por memoria[ipFis], y memoria[registros[IP]+1] por memoria[ipFis+1], etc. */
         errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
 
         if (errorSig) {
