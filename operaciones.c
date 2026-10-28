@@ -98,7 +98,7 @@ int validoDirFisica(int op, int registros[REGISTROS], short int tabla[8][2]){
     return (offset + tamanio) <= tabla[segmento][1];
 }
 void imprimirOperando(int Top, int op, char *nomRegistro[32], char cadena[100], int ver){
-    if(ver=1){
+    if(ver==1){
         switch (Top){
         case 1:
             printf("%s", nomRegistro[op & 0x1F]);

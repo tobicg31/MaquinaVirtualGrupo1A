@@ -62,6 +62,7 @@ void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 void imprimir_binario(int valor, int tam_bytes);
 void cambiarCC(int32_t valor, int carry, int overflow, int registros[REGISTROS]);
 void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32],int IPant, char memoria[MEMORIA], int registros[MBR], char *funcion, char cadena[100], int ver);
+void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]);
 void imprimirOperando(int ,int op, char* nomRegistro[32], char cadena[100], int ver);
 void cargarLAR( int op,int registros[REGISTROS], short int tabla[8][2]);
 int validoDirFisica(int op,int registros[REGISTROS], short int tabla[8][2]);
@@ -69,3 +70,6 @@ int32_t leerMemoria32(char memoria[MEMORIA], int dir, int ver, int mod);
 void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor, int ver, int mod);
 void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],char *archivo_vmi);
 int dirFisica(int dir, short int tabla[8][2], int bytes);
+int32_t leerRegistro(int registros[REGISTROS], int regis, int ver);
+void escribirRegistro(int registros[REGISTROS], int regis, int valor, int ver);
+void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver);
