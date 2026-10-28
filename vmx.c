@@ -48,13 +48,32 @@ void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short in
     }
 }
 
-void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32]) {
+void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
+    int ip; int IPant; char cadena[100]; int i; int registrosMentira[REGISTROS] = {0};
+    if(tamConst>0){
+        ip = tabla[registros[CS]>>16][0];
+        while (ip<(tamConst+tabla[registros[CS]>>16][0])){
+            IPant=ip; i=0;
+            while (memoria[ip] != '\0'){
+                cadena[i] += memoria[ip++];
+                i++;
+            }
+            registrosMentira[IP]=ip;
+            cadena[i] += '\0';
+            disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria, registrosMentira, "", cadena, 2);
+        }
+    }
+    printf(">");
+    DesensamblarEstatico(memoria, tamCodigo, nomRegistro, 2);
+}
+
+void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
     
     // Mapeo exacto de los Opcodes a String
     char* mnemonicos[32] = {"SYS", "JMP", "JP", "JN", "JZ", "JC", "JV", "JNP", "JNN", "JNZ", 
-                            "NOT", "B", "C", "D", "E", "STOP", "MOV", "ADD", "SUB", "MUL", 
+                            "NOT", "PUSH", "POP", "CALL", "RET", "STOP", "MOV", "ADD", "SUB", "MUL", 
                             "DIV", "CMP", "AND", "OR", "XOR", "SWAP", "SHL", "SHR", "SAR", 
                             "LDL", "LDH", "RND"};
 
@@ -104,7 +123,7 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
         int op2_completo = (cant_operandos == 2) ? (TopB << 24) | opB : 0;
 
         // 3. Llamar a la función existente (forzando flag=1 para que imprima)
-        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc]);
+        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], "", ver);
     }
 }
 
@@ -160,7 +179,7 @@ void main(int argc, char *argv[]) {
                     memoria[j++] = dato;
                 }
                 if (flag) {  
-                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro);
+                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro,1);
                 }
                 registros[CS] = 0x00000000;
                 registros[DS] = 0x00010000;
@@ -239,13 +258,14 @@ void main(int argc, char *argv[]) {
                             memoria[ps_base + offset_actual++] = puntero & 0xFF;
                         }
                     }
-                    //dissasembler v2:
-
                     //ejecucion
                     printf("ejecuto en base al vmx");
                     registros[IP] = (tabla[registros[CS]>>16][0])<<16;
                     registros[IP] |= tamOrdenados[5];
-                    //Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[0], version);
+                    //dissasembler v2:
+                    if(flag)
+                        Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro);
+                    Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version);
                 }
                 else{
                     printf("no alcanza el tamanio en memoria");
@@ -293,10 +313,10 @@ void main(int argc, char *argv[]) {
                     fread(&memoria[i], 1, 1, archvmi);
                 }
                 //dissasembler:
-
+                //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
                 printf("ejecuto desde un vmi");
-                //Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version);
+                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version);
             }
         }
     } else {
