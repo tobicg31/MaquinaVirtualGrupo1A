@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "operaciones.h"
 
-int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
+int validarDatos(char * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version, char *archivo_vmi);
 
@@ -163,7 +163,7 @@ void main(int argc, char *argv[]) {
 
     // 4. Lógica principal de carga y ejecución
     if (archivo_vmx != NULL) { 
-        FILE *archvmx = fopen(archivo_vmx, "rb");
+        char *archvmx = fopen(archivo_vmx, "rb");
         if (!archvmx) {
             printf("Error al abrir el archivo %s\n", archivo_vmx);
             return;
@@ -277,7 +277,7 @@ void main(int argc, char *argv[]) {
         // Lógica para reanudar desde .vmi
         //cargar desde el vmi
         //ejecucion
-        FILE * archvmi = fopen(archivo_vmi, "rb");
+        char * archvmi = fopen(archivo_vmi, "rb");
         char ident[5]; char id; char verVmi; short int tamMemoria;
 
 
@@ -326,7 +326,7 @@ void main(int argc, char *argv[]) {
 //     short int tabla[8][2]; //matriz de 2 bytes * 8 bytes para tabla de segmentos
 //     int registros[REGISTROS] = {0}; //podriamos meter todas las bases q tenemos en un mismo void inicializadores
 //     char* nomRegistro[32] = {"IP", "OPC", "OP1","OP2", "LAR", "MAR", "MBR", "SP", "BP", "nada", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX", "AC", "CC", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "nada", "CS", "DS", "ES", "SS", "KS", "PS"};
-//     FILE * archvmx= fopen(argv[1], "rb");
+//     char * archvmx= fopen(argv[1], "rb");
 //     int version; int validar;
 //     short int tamanioSegmentos[10];
 
@@ -375,7 +375,7 @@ void main(int argc, char *argv[]) {
 //     else
 //         flag = 0;
 
-//     FILE * arch = fopen(argv[1], "rb");
+//     char * arch = fopen(argv[1], "rb");
 
 //     char dato;
 //     //int tamanioArchivo=0;
@@ -405,7 +405,7 @@ void main(int argc, char *argv[]) {
 //     }
 // }
 
-int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
+int validarDatos(char *arch, short int tamanioSegmentos[10], char *version){
     char dato;
     //char version;
     char datos[6];

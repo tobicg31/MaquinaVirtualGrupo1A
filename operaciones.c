@@ -445,7 +445,7 @@ int dirFisica(int dir, short int tabla[8][2], int bytes){
     return tabla[seg][0] + off;
 }
 void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],char *archivo_vmi){
-    FILE * f = fopen(archivo_vmi, "wb");
+    char * f = fopen(archivo_vmi, "wb");
     printf("[BREAKPOINT] se genera imagen en %s\n", archivo_vmi);
     if (!f){
         printf("[BREAKPOINT] no se pudo crear %s\n", archivo_vmi);
