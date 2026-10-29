@@ -6,6 +6,7 @@ main:   push bp
         call suma
         add sp, 4
         mov edx, ds
+        sys 15
         ldl ecx, 1
         ldh ecx, 2
         mov eax, 1

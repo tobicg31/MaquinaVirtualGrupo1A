@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
+#include <winsock.h>
 
 
 void escribirRegistro(int registros[REGISTROS], int regis, int valor, int ver){
@@ -455,18 +456,22 @@ void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int t
         return;
     }
     const char ident[5] = {'V','M','I','2','6'};
-    short int version = 2;
-    short int tamMemoriaKiB=16;
+    short int version = 1;
+    short int tamMemoriaKiB= htons(16);
     fwrite(ident, 1, 5, f);
 
-    fwrite(&version, sizeof(version), 1, f);
+    fwrite(&version, 1, 1, f);
 
     fwrite(&tamMemoriaKiB, 2, 1, f);
-    for (int i = 0; i < 32; i++)
-        fwrite(&registros[i], 4, 1, f);
+    for (int i = 0; i < 32; i++) {
+        int reg = htonl(registros[i]);
+        fwrite(&reg, 4, 1, f);
+    }
     for (int i = 0; i < 8; i++){
-        fwrite(&tabla[i][0], 2, 1, f);
-        fwrite(&tabla[i][1], 2, 1, f);
+        short int base = htons(tabla[i][0]);
+        short int size = htons(tabla[i][1]);
+        fwrite(&base, 2, 1, f);
+        fwrite(&size, 2, 1, f);
     }
     fwrite(memoria, 1, tamMemoriaKiB * 1024, f);
     fclose(f);

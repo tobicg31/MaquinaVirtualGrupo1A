@@ -338,7 +338,7 @@ void main(int argc, char *argv[]) {
         //cargar desde el vmi
         //ejecucion
         FILE * archvmi = fopen(archivo_vmi, "rb");
-        char ident[5]; char id; char verVmi; short int tamMemoria;
+        char ident[5]; char id; short int verVmi; short int tamMemoria;
 
 
         //fread(ident, sizeof(char)*5, 1, archvmi);
@@ -352,7 +352,7 @@ void main(int argc, char *argv[]) {
 
 
         if (strcmp("VMI26", ident) == 0){
-            if(fread(&verVmi, sizeof(char), 1, archvmi)==1){
+            if(fread(&verVmi, sizeof(short int), 1, archvmi)==1){
                 fread(&tamMemoria, sizeof(tamMemoria), 1, archvmi);
                 int i;
                 //cargo los registros
@@ -371,7 +371,7 @@ void main(int argc, char *argv[]) {
                 //dissasembler:
                 //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
-                //printf("ejecuto desde un vmi");
+                printf("ejecuto desde un vmi");
                 Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[registros[CS]>>16][1], verVmi, archivo_vmi);
             }
         }
