@@ -107,8 +107,8 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
         char dummy[100];
         disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], dummy, ver);
     }
-}
-
+    }
+    /*
 void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
     int ip; int IPant; char cadena[100]=""; int i; int registrosMentira[REGISTROS] = {0};
     if(tamConst>0){
@@ -124,9 +124,37 @@ void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[R
             cadena[i] += '\0';
             disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria+tabla[registros[KS]>>16][0], registrosMentira, "", cadena, 2);
         }
+        }
+        printf(">");
+        DesensamblarEstatico(memoria+tabla[registros[CS]>>16][0], tamCodigo, nomRegistro, 2);
+    }
+    */
+        void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
+    int registrosMentira[REGISTROS] = {0};
+    
+    if (tamConst > 0){
+        int baseConstSegment = tabla[registros[KS] >> 16][0];
+        char *constSegment = memoria + baseConstSegment;
+        char cadena[tamConst + 1];
+        int offsetActual = 0;
+        
+        while (offsetActual < tamConst){
+            int offsetInicioCadena = offsetActual;
+            int largoCadena = 0;
+            
+            while (offsetActual < tamConst && constSegment[offsetActual] != '\0'){
+                cadena[largoCadena++] = constSegment[offsetActual++];
+            }
+            cadena[largoCadena] = '\0';
+
+            offsetActual++;   // saltear el '\0' terminador
+
+            registrosMentira[IP] = offsetActual;
+            disassembler(1, 4, 0, 0, nomRegistro, offsetInicioCadena, constSegment, registrosMentira, "", cadena, 2);
+        }
     }
     printf(">");
-    DesensamblarEstatico(memoria+tabla[registros[CS]>>16][0], tamCodigo, nomRegistro, 2);
+    DesensamblarEstatico(memoria + tabla[registros[CS] >> 16][0], tamCodigo, nomRegistro, 2);
 }
 
 void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, int offset_argv, char *nomRegistro[32], int *enter, char *archivo_vmi){

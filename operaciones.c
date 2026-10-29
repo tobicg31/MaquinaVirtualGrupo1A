@@ -678,7 +678,7 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 registros[MBR] = valor_fuente;
             }
             else{
-                printf("FALLO DE SEGMENTO");
+                printf("FALLO DE SEGMENTO dasdsad");
                 registros[IP] = -1;
                 return;
             }
@@ -852,7 +852,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     }
     else if (op1 >> 24 == 1){ // Registro
         valor_destino = leerRegistro(registros, op1&0x1F, ver);
-        escribirRegistro(registros, op1&0x1F,valor_destino + valor_fuente, ver);
+        escribirRegistro(registros, op1&0x1F,valor_destino - valor_fuente, ver);
     }
     // Cálculo de desbordamiento y acarreo
     res_signed = (int64_t)valor_destino - (int64_t)valor_fuente;
