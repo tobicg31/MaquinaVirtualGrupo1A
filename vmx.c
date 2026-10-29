@@ -487,6 +487,11 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
     
     do{ //<----------------cambiar a un Do-while
         
+        if ((registros[IP] & 0xFFFF) >= tamCodigo) {
+            registros[IP] = -1;
+            break;
+        }
+
         int TopB=0;
         int TopA=0;
         int opA=0, opB=0;
