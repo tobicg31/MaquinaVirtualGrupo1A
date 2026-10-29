@@ -308,7 +308,7 @@ void main(int argc, char *argv[]) {
         }
         ident[5] = '\0';
 
-        printf("ejecuto desde vmi %s a asd", ident);
+       //printf("ejecuto desde vmi %s a asd", ident);
 
 
         if (strcmp("VMI26", ident) == 0){
@@ -325,14 +325,14 @@ void main(int argc, char *argv[]) {
                     fread(&tabla[i][1], 2, 1, archvmi);                    
                 }
                 //cargo la memoria
-                for (i=0; i<tamMemoria; i++){
+                for (i=0; i<tamMemoria*1024; i++){
                     fread(&memoria[i], 1, 1, archvmi);
                 }
                 //dissasembler:
                 //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
-                printf("ejecuto desde un vmi");
-                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[CS>>16][1] - tabla[CS>>16][0], version, archivo_vmi);
+                //printf("ejecuto desde un vmi");
+                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[registros[CS]>>16][1], verVmi, archivo_vmi);
             }
         }
     } else {

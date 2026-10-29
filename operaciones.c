@@ -455,7 +455,7 @@ void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int t
         return;
     }
     const char ident[5] = {'V','M','I','2','6'};
-    char version = 1;
+    char version = 2;
     short int tamMemoriaKiB=16;
     fwrite(ident, 1, 5, f);
     fwrite(&version, 1, 1, f);
@@ -476,25 +476,24 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         printf("[BREAKPOINT] no se indico archivo .vmi: no se genera imagen\n");
         return;
           }
-        else{
-         hacebreakpoint(memoria,  registros, tabla, archivo_vmi);
-         char caracter[2]; 
-         scanf("%c",caracter);
-        //no evaluo g porque si se escribe 'g' se sigue ejecutando igual
-        scanf("%c", caracter);
-        if (caracter[0] != '\n'){
-            int c; 
-            while ((c = getchar()) != '\n' && c != EOF) ;
-        }
-        else if (caracter[0] == '\n'){
-            //ejecuta paso a paso
-            *enter=1;
-        }
-        else if (caracter[0] == 'q'){
-            //termina ejecucion
-            registros[IP] = -1;
-        }
-        return;
+        else {
+            hacebreakpoint(memoria, registros, tabla, archivo_vmi);
+            
+            char buffer[16];
+            // Leemos la entrada completa (incluyendo el Enter)
+            if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+                if (buffer[0] == 'q' || buffer[0] == 'Q') {
+                    // El usuario quiere salir
+                    registros[IP] = -1;
+                } else if (buffer[0] == '\n') {
+                    // El usuario solo apretó Enter (paso a paso)
+                    *enter = 1;
+                }
+                // Si el usuario ingresa 'g', no hace match con ninguno de los dos if,
+                // la bandera no se activa y el programa continúa de corrido.
+            }
+            return;
+        
     }
     }else if (tiposys == 0){
         printf("\x1b[2J\x1b[H");
