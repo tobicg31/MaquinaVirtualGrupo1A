@@ -254,7 +254,7 @@ void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
     }
 }
 void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
-    if ((uint32_t)registros[CC] >> 30 == 0b01){ // N==0 Z==1
+    if ((((uint32_t)registros[CC] >> 30) & 1)==1){ // N==0 Z==1
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter,archivo_vmi);
     }
 }
@@ -1053,7 +1053,8 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
     }
     else{ // Inmediato
-        valor_fuente = op2 & 0xFFFFFF;
+        short int inm = (short int) op2 & 0xFFFFFF;
+        valor_fuente = (int) inm;
     }
 
     // 2. Guardar en el destino (op1)
@@ -1091,6 +1092,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 
     resultado_32 = (int32_t)res_signed;
     cambiarCC(resultado_32, carry, overflow, registros);
+    
 }
 
 void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
