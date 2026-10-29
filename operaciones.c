@@ -658,7 +658,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 printf("%c", c);
                 dir++;
                 c= leerMemoria32(memoria, dir, ver, 1);
-            }
+            }fflush(stdout); printf("\n");
         }
        
 }

@@ -280,7 +280,7 @@ void main(int argc, char *argv[]) {
                     //inicializo pila sub principal:
                     int e;
                     inicializoPila(memoria, tabla, registros, tamanioPS, argcSubrutina, nomRegistro, &e, archivo_vmi);
-                    printf("ejecuta:");
+                    //printf("ejecuta:");
                     Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version, archivo_vmi);
                 }
                 else{
