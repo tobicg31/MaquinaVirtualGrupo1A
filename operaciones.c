@@ -87,7 +87,7 @@ void cargarLAR(int op, int registros[REGISTROS], short int tabla[8][2]){
     int base = registros[op & 0x1F]; // puntero base: segmento(16) + offset(16)
     int segmento = (base >> 16) & 0xFFFF;
     int offsetBase = base & 0xFFFF;
-    int desplazamiento = (op >> 8) & 0xFFFF; // el offset codificado en la instruccion
+    short int desplazamiento = (short int) (op >> 8) & 0xFFFF; // el offset codificado en la instruccion
     registros[LAR] = (segmento << 16) | ((offsetBase + desplazamiento) & 0xFFFF);
 }
 
@@ -213,7 +213,7 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -306,7 +306,7 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -350,7 +350,7 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                 cargarLAR(op1, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op1, registros, tabla)){
@@ -395,7 +395,7 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
                 cargarLAR(op1, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op1, registros, tabla)){
@@ -671,13 +671,14 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op2 >> 24 == 3){ // Memoria
         if (tabla[(registros[op2 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op2, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op2 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)){
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
                 registros[MBR] = valor_fuente;
             }
             else{
+                printf("FALLO: op=%08X, LAR=%08X, MAR=%08X, SP=%08X, BP=%08X\n", op1, registros[LAR], registros[MAR], registros[SP], registros[BP]);
                 printf("FALLO DE SEGMENTO dasdsad");
                 registros[IP] = -1;
                 return;
@@ -701,7 +702,7 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op1 >> 24 == 3){ // Memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op1, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
                 escribirMemoria32(memoria, registros[MAR] & 0xFFFF, valor_fuente, ver, (op1 >> 5) & 0x7); // simplificado a 1 byte o según corresponda
@@ -733,7 +734,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op2 >> 24 == 3){ // Memoria
         if (tabla[(registros[op2 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op2, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op2 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)){
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
@@ -762,7 +763,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op1 >> 24 == 3){ // Memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op1, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
                 valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7);
@@ -803,7 +804,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op2 >> 24 == 3){ // Memoria
         if (tabla[(registros[op2 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op2, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op2 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)){
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
@@ -832,7 +833,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op1 >> 24 == 3){ // Memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op1, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
                 valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7);
@@ -878,7 +879,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op2 >> 24 == 3){ // Memoria
         if (tabla[(registros[op2 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op2, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op2 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)){
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
@@ -907,7 +908,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op1 >> 24 == 3){ // Memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op1, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
                 valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7);
@@ -950,7 +951,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op2 >> 24 == 3){ // Memoria
         if (tabla[(registros[op2 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op2, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op2 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)){
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
@@ -985,7 +986,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (op1 >> 24 == 3){ // Memoria
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){
                 cargarLAR(op1, registros, tabla);
-                registros[MAR] = 4 << 16;
+                registros[MAR] = ((op1 >> 5) & 0x7) << 16;
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op1, registros, tabla)){
                     valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7);
@@ -1026,7 +1027,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op2 >> 24 == 3){ // Memoria
         if (tabla[(registros[op2 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op2, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op2 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op2, registros, tabla)){
                 valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
@@ -1055,7 +1056,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     if (op1 >> 24 == 3){ // Memoria
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){
             cargarLAR(op1, registros, tabla);
-            registros[MAR] = 4 << 16;
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16;
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
                 valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7); // simplificado a 1 byte o según corresponda
@@ -1094,7 +1095,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -1105,7 +1106,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){                                     // pregunto si el codigo de segmento es valido
                         cargarLAR(op2, registros, tabla); // guardo la dir logica
                         // en la parte del MAR cuantos bytes:
-                        registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                        registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                         // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                         registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                         if (validoDirFisica(op2, registros, tabla)){
@@ -1153,7 +1154,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+               registros[MAR] = ((op2 >> 5) & 0x7) << 16;// creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){
@@ -1188,7 +1189,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -1200,7 +1201,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
                     if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){   // pregunto si el codigo de segmento es valido
                         cargarLAR(op2, registros, tabla); // guardo la dir logica
                         // en la parte del MAR cuantos bytes:
-                        registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                        registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                         // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                         registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                         if (validoDirFisica(op2, registros, tabla)){
@@ -1248,7 +1249,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                registros[MAR] = ((op2 >> 5) & 0x7) << 16;// creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){
@@ -1286,7 +1287,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -1298,7 +1299,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){                                     // pregunto si el codigo de segmento es valido
                         cargarLAR(op2, registros, tabla); // guardo la dir logica
                         // en la parte del MAR cuantos bytes:
-                        registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                        registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                         // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                         registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                         if (validoDirFisica(op2, registros, tabla)){
@@ -1346,7 +1347,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){   // pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                registros[MAR] = ((op2 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){
@@ -1395,7 +1396,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -1413,7 +1414,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                         cargarLAR(op2, registros, tabla); // guardo la dir logica
                         // en la parte del MAR cuantos bytes:
-                        registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                        registros[MAR] = ((op2 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                         // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
                         registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                         if (validoDirFisica(op2, registros, tabla)){
@@ -1535,7 +1536,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                registros[MAR] = ((op2 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){
@@ -1642,7 +1643,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -1656,7 +1657,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                         cargarLAR(op2, registros, tabla); // guardo la dir logica
                         // en la parte del MAR cuantos bytes:
-                        registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                        registros[MAR] = ((op2 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                         // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
                         registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                         if (validoDirFisica(op2, registros, tabla)){
@@ -1738,7 +1739,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                registros[MAR] = ((op2 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){
@@ -1808,7 +1809,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -1823,7 +1824,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){                                     // pregunto si el codigo de segmento es valido
                         cargarLAR(op2, registros, tabla); // guardo la dir logica
                         // en la parte del MAR cuantos bytes:
-                        registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                        registros[MAR] = ((op2 >> 5) & 0x7) << 16;// creo q son 4 bytes porq leemos numeros(?)
                         // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
                         registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                         if (validoDirFisica(op2, registros, tabla)){
@@ -1908,7 +1909,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                registros[MAR] = ((op2 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MBR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){
@@ -1983,7 +1984,7 @@ void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     // 1. Obtener fuente (op2)
     if (op2 >> 24 == 3){
         cargarLAR(op2, registros, tabla);
-        registros[MAR] = (4 << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
+        registros[MAR] = ((((op2 >> 5) & 0x7)) << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
         if (validoDirFisica(op2, registros, tabla)){
             valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
         }
@@ -2003,7 +2004,7 @@ void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     // 2. Modificar destino (op1)
     if (op1 >> 24 == 3){
         cargarLAR(op1, registros, tabla);
-        registros[MAR] = (4 << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
+        registros[MAR] = ((((op1 >> 5) & 0x7)) << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
         if (validoDirFisica(op1, registros, tabla)){
             valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7);
 
@@ -2031,7 +2032,7 @@ void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     // 1. Obtener fuente (op2)
     if (op2 >> 24 == 3){
         cargarLAR(op2, registros, tabla);
-        registros[MAR] = (4 << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
+        registros[MAR] = ((((op2 >> 5) & 0x7)) << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
         if (validoDirFisica(op2, registros, tabla)){
             valor_fuente = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
         }
@@ -2051,7 +2052,7 @@ void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     // 2. Modificar destino (op1)
     if (op1 >> 24 == 3){
         cargarLAR(op1, registros, tabla);
-        registros[MAR] = (4 << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
+        registros[MAR] = ((((op1 >> 5) & 0x7)) << 16) | (tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF));
         if (validoDirFisica(op1, registros, tabla)){
             valor_destino = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7);
 
@@ -2078,7 +2079,7 @@ void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
             cargarLAR(op1, registros, tabla); // guardo la dir logica
             // en la parte del MAR cuantos bytes:
-            registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+            registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
             // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
             registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
             if (validoDirFisica(op1, registros, tabla)){
@@ -2090,7 +2091,7 @@ void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){ // pregunto si el codigo de segmento es valido
                         cargarLAR(op2, registros, tabla); // guardo la dir logica
                         // en la parte del MAR cuantos bytes:
-                        registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+                        registros[MAR] = ((op1 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                         // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                         registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                         if (validoDirFisica(op2, registros, tabla)){
@@ -2134,7 +2135,7 @@ void RND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             if (tabla[(registros[op1 & 0x1F]) >> 16][0] != -1){// pregunto si el codigo de segmento es valido
                 cargarLAR(op2, registros, tabla); // guardo la dir logica
                 // en la parte del MAR cuantos bytes:
-                registros[MAR] = 4 << 16; // creo q son 4 bytes porq leemos numeros(?)
+               registros[MAR] = ((op2 >> 5) & 0x7) << 16; // creo q son 4 bytes porq leemos numeros(?)
                 // traducir a dir fisica, guardarla en la parte baja del MbR, reviso si no se cae del segmento:
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){

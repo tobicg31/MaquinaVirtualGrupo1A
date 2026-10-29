@@ -516,6 +516,10 @@ void inicializarTabla(short int tamCodigo, short int Tabla[][2]){
 }
 void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], char* nomRegistro[32], int tamCodigo, int version, char *archivo_vmi){
     int errorSig,enter=0;
+    char* mnemonicos[32] = {"SYS", "JMP", "JP", "JN", "JZ", "JC", "JV", "JNP", "JNN", "JNZ", 
+                            "NOT", "PUSH", "POP", "CALL", "RET", "STOP", "MOV", "ADD", "SUB", "MUL", 
+                            "DIV", "CMP", "AND", "OR", "XOR", "SWAP", "SHL", "SHR", "SAR", 
+                            "LDL", "LDH", "RND"};
 
     //registros[CS] = 0x00000000;
     //registros[DS] = 0x00010000;
@@ -618,7 +622,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         }
          if (registros[IP]!=-1){ //si no me escribieron q en breakpoint, sigo ejecutando
          registros[IP] += 1+TopB+TopA; 
-        //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
+        printf("operacion:%s tipo de op1:%d tipo de op2:%d\n", mnemonicos[registros[OPC]], TopA, TopB);
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter, archivo_vmi);
         
         }
