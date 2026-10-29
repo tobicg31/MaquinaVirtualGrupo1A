@@ -27,6 +27,10 @@ main:   push bp
         sys  2                      ; deberia mostrar 30
         add  sp, 4
 
+        sys  15
+        mov  eax, 7
+        add  eax, 1
+        add  eax, 1
         ; 3) SYS 3: leer una frase (con espacios) en el Data Segment
         mov  edx, ks
         add  edx, PIDE
