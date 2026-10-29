@@ -110,22 +110,23 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
 }
 
 void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
-    int ip; int IPant; char cadena[100]; int i; int registrosMentira[REGISTROS] = {0};
+    int ip; int IPant; char cadena[100]=""; int i; int registrosMentira[REGISTROS] = {0};
     if(tamConst>0){
-        ip = tabla[registros[CS]>>16][0];
-        while (ip<(tamConst+tabla[registros[CS]>>16][0])){
+        //ip = tabla[registros[KS]>>16][0];
+        ip =0;
+        while (ip<(tamConst)){
             IPant=ip; i=0;
-            while (memoria[ip] != '\0'){
-                cadena[i] += memoria[ip++];
+            while (memoria[ip+tabla[registros[KS]>>16][0]] != '\0'){
+                cadena[i] = memoria[ip++];
                 i++;
             }
-            registrosMentira[IP]=ip;
+            registrosMentira[IP]=ip+1;
             cadena[i] += '\0';
-            disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria, registrosMentira, "", cadena, 2);
+            disassembler(1,4, 0, 0 , nomRegistro, IPant, memoria+tabla[registros[KS]>>16][0], registrosMentira, "", cadena, 2);
         }
     }
     printf(">");
-    DesensamblarEstatico(memoria, tamCodigo, nomRegistro, 2);
+    DesensamblarEstatico(memoria+tabla[registros[CS]>>16][0], tamCodigo, nomRegistro, 2);
 }
 
 void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, char *nomRegistro[32], int *enter, char *archivo_vmi){
@@ -227,6 +228,7 @@ void main(int argc, char *argv[]) {
                 short int tamOrdenados[6] = {tamanioPS,tamanioSegmentos[4], tamanioSegmentos[0], tamanioSegmentos[1], tamanioSegmentos[2],tamanioSegmentos[3]};
 
                 if (sumaTamanios(tamOrdenados) <= tam_memoria_kib*1024){
+                    //printf("llegddo");
                     // 3. Inicializar la tabla y los registros de segmentos
                     inicializarTablaV2(registros, tabla, tamOrdenados);
                     registros[IP] = registros[CS] | tamanioSegmentos[5];   // índice de CS + offset del entry point
@@ -270,7 +272,7 @@ void main(int argc, char *argv[]) {
                         }
                     }
                     //ejecucion
-                    printf("ejecuto en base al vmx");
+                    //printf("ejecuto en base al vmx");
                     //dissasembler v2:
                     if(flag)
                         Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro);
@@ -278,7 +280,7 @@ void main(int argc, char *argv[]) {
                     //inicializo pila sub principal:
                     int e;
                     inicializoPila(memoria, tabla, registros, tamanioPS, argcSubrutina, nomRegistro, &e, archivo_vmi);
-                        
+                    printf("ejecuta:");
                     Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version, archivo_vmi);
                 }
                 else{
@@ -447,7 +449,7 @@ int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
             return 1;
         }
         else {
-            printf("version2 ");
+            //printf("version2 ");
             for (int i=0; i<=5; i++){    
                 unsigned char byteAlto, byteBajo;
                 fread(&byteAlto, 1, 1, arch);
@@ -495,57 +497,60 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         if (ipFis < 0){ printf("FALLO DE SEGMENTO"); registros[IP] = -1; break; }
         registros[OPC] = memoria[ipFis] & 0x1F;
         /* reemplazá memoria[registros[IP]] por memoria[ipFis], y memoria[registros[IP]+1] por memoria[ipFis+1], etc. */
-        errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
-
+        if (version ==1 )
+            errorSig = !((registros[OPC]>=0 && registros[OPC]<=10) || (registros[OPC] >=16 && registros[OPC]<=0x1F) || (registros[OPC]==0x0F));
+        else
+            errorSig = !(registros[OPC] >= 0 && registros[OPC] <= 31);
+        
         if (errorSig) {
             printf("\n[ERROR] Instruccion invalida (%02X) en la direccion IP: [%04X]\n", registros[OPC], registros[IP]);
             registros[IP] = -1; // Marcamos el fin de la ejecución
             break;              // Rompemos el ciclo inmediatamente
         }
 
-        if ((memoria[registros[IP]] >> 4)& 1){ //2 operandos
-            TopB= (memoria[registros[IP]]>> 6)& 0x03; // si es un operando de mas de 1 byte, como lo guardo
+        if ((memoria[ipFis] >> 4)& 1){ //2 operandos
+            TopB= (memoria[ipFis]>> 6)& 0x03; // si es un operando de mas de 1 byte, como lo guardo
             switch (TopB){
                 case 1:
-                    opB = (unsigned char) memoria[registros[IP]+1];
+                    opB = (unsigned char) memoria[ipFis+1];
                     break;
                 case 2:
-                    opB = ((unsigned char) memoria[registros[IP]+1] << 8) | (unsigned char) memoria[registros[IP]+2];
+                    opB = ((unsigned char) memoria[ipFis+1] << 8) | (unsigned char) memoria[ipFis+2];
                     break;
                 case 3:
-                    opB = (((unsigned char) memoria[registros[IP]+1] << 8) |(unsigned char) memoria[registros[IP]+2]) << 8 |(unsigned char) memoria[registros[IP]+3];
+                    opB = (((unsigned char) memoria[ipFis+1] << 8) |(unsigned char) memoria[ipFis+2]) << 8 |(unsigned char) memoria[ipFis+3];
                     break;
                 default:
                     opB = 0;
                     break;
             }
-            TopA= (memoria[registros[IP]] >> 4)& 0x03;
+            TopA= (memoria[ipFis] >> 4)& 0x03;
             if (TopA == 3)
-                opA = (((unsigned char) memoria[registros[IP]+TopB+1] << 8) |
-                        (unsigned char) memoria[registros[IP]+TopB+2]) << 8 |
-                    (unsigned char) memoria[registros[IP]+TopB+3];
+                opA = (((unsigned char) memoria[ipFis+TopB+1] << 8) |
+                        (unsigned char) memoria[ipFis+TopB+2]) << 8 |
+                    (unsigned char) memoria[ipFis+TopB+3];
             else
-                opA = (unsigned char) memoria[registros[IP]+TopB+1];
+                opA = (unsigned char) memoria[ipFis+TopB+1];
             //analizo pesos y tipos funcion aparte
             //reviso que no me caiga del CS registros if (memoria[IP]+tamanoopA+tamanoB es mewnor a tamanocodigo
             // me parece que no hace falta verificar esto)
         }
         else{
-            if (((memoria[registros[IP]] >> 5) & 0x07 ) == 0x000){
+            if (((memoria[ipFis] >> 5) & 0x07 ) == 0x000){
                 TopA=0;
                 TopB=0;
             }
             else{ //1 solo operando
-                TopA= (memoria[registros[IP]] >> 6)& 0x03;
+                TopA= (memoria[ipFis] >> 6)& 0x03;
                 switch (TopA){
                     case 1:
-                        opA = (unsigned char) memoria[registros[IP] + 1];
+                        opA = (unsigned char) memoria[ipFis + 1];
                         break;
                     case 2:
-                        opA = ((unsigned char) memoria[registros[IP] + 1] << 8) | (unsigned char) memoria[registros[IP] + 2];
+                        opA = ((unsigned char) memoria[ipFis + 1] << 8) | (unsigned char) memoria[ipFis + 2];
                         break;
                     case 3:
-                        opA = (((unsigned char) memoria[registros[IP] + 1] << 8) | (unsigned char) memoria[registros[IP] + 2]) << 8 | (unsigned char) memoria[registros[IP] + 3];
+                        opA = (((unsigned char) memoria[ipFis + 1] << 8) | (unsigned char) memoria[ipFis + 2]) << 8 | (unsigned char) memoria[ipFis + 3];
                         break;
                     default:
                         opA = 0;
@@ -568,7 +573,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         }
          if (registros[IP]!=-1){ //si no me escribieron q en breakpoint, sigo ejecutando
          registros[IP] += 1+TopB+TopA; 
-        //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
+        printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter, archivo_vmi);
         
         }
@@ -581,7 +586,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         // aca iria la parte de ejecutar la instruccion guardada en registros[OPC]
         //printf("aca \n");
         
-    }while (!errorSig && registros[IP]!=-1 && registros[IP]<tamCodigo);
+    }while (!errorSig && registros[IP]!=-1 && (registros[IP] & 0xFFFF)<tamCodigo);
 
 }
 

@@ -98,7 +98,7 @@ int validoDirFisica(int op, int registros[REGISTROS], short int tabla[8][2]){
     return (offset + tamanio) <= tabla[segmento][1];
 }
 void imprimirOperando(int Top, int op, char *nomRegistro[32], char cadena[100], int ver){
-    if(ver=1){
+    if(ver==1){
         switch (Top){
         case 1:
             printf("%s", nomRegistro[op & 0x1F]);
@@ -180,18 +180,20 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32], in
             printf("..");
         }
         printf("\t | %s ", funcion);
-        switch (tOp){
+        switch (tOp){ // tOp aquí es la cantidad de operandos
         case 0:
             printf("\n");
             break;
         case 1:
-            imprimirOperando(tOp, op1, nomRegistro, cadena, ver);
+            // Extraemos el tipo real del operando (TopA) desplazando 24 bits
+            imprimirOperando(op1 >> 24, op1, nomRegistro, cadena, ver); 
             printf("\n");
             break;
         case 2:
-            imprimirOperando(tOp, op1, nomRegistro,cadena, ver);
+            imprimirOperando(op1 >> 24, op1, nomRegistro,cadena, ver);
             printf(",");
-            imprimirOperando(tOp, op2, nomRegistro, cadena, ver);
+            // Extraemos el tipo real del operando (TopB) desplazando 24 bits
+            imprimirOperando(op2 >> 24, op2, nomRegistro, cadena, ver); 
             printf("\n");
             break;
         case 4:
@@ -235,8 +237,9 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     else if (op1 >> 24 == 1){ // registro
         registros[IP] = leerRegistro(registros, op1&0x1F, ver);
     }
-    else{ // segundo op inmediato
-        registros[IP] = ((op1 & 0xFFFFFF)) & 0xFFFF;
+    else{ // operando inmediato
+        // Mantenemos el segmento (bits altos) y reemplazamos el offset (bits bajos)
+        registros[IP] = (registros[IP] & 0xFFFF0000) | (op1 & 0xFFFF);
     }
 }
 void JP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
@@ -353,7 +356,7 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
                 if (validoDirFisica(op1, registros, tabla)){
                     registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x8);
                     registros[SP] -= 4;
-                    escribirMemoria32(memoria, registros[SP], registros[MBR], ver, 4);
+                    escribirMemoria32(memoria,dirFis, registros[MBR], ver, 4);
                 }
                 else{
                     printf("FALLO DE SEGMENTO");
@@ -372,11 +375,11 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
 
             int32_t leer = leerRegistro(registros, op1 & 0x1F, ver);
             registros[SP] -= 4;
-            escribirMemoria32(memoria, registros[SP], leer, ver, 4);
+            escribirMemoria32(memoria, dirFis, leer, ver, 4);
         }
         else{ // segundo op inmediato
             registros[SP]-=4;
-            escribirMemoria32(memoria, registros[SP] , op1&0xFFFFFF, ver, 4);
+            escribirMemoria32(memoria, dirFis , op1&0xFFFFFF, ver, 4);
         }
     }
 }
@@ -402,13 +405,13 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     registros[SP] += 4;
                 }
                 else{
-                    printf("FALLO DE SEGMENTO");
+                    printf("FALLO DE SEGMENTO dd");
                     registros[IP] = -1;
                     return;
                 }
             }
             else{
-                printf("FALLO DE SEGMENTO");
+                printf("FALLO DE SEGMENTO ");
                 registros[IP] = -1;
                 return;
             }
