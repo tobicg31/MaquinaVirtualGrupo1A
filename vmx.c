@@ -243,20 +243,22 @@ void main(int argc, char *argv[]) {
                 Ejecucion(0, memoria, registros, tabla, nomRegistro, tamanioSegmentos[0], version, archivo_vmi);
             }
             else if (version == 2) {
+
                 // 1. Calcular el Param Segment (Siempre existe si ejecutamos un .vmx)
                 short int tamanioPS = 0;
                 int argcSubrutina = 0;
-                
-                tamanioPS += strlen(archivo_vmx) + 1; // +1 por el '\0'
-                argcSubrutina++;
-                
-                if (param_index != -1) {
-                    for (int i = param_index; i < argc; i++) {
-                        tamanioPS += strlen(argv[i]) + 1;
-                        argcSubrutina++;
+                if (param_index != -1){
+                    tamanioPS += strlen(archivo_vmx) + 1; // +1 por el '\0'
+                    argcSubrutina++;
+                    
+                    if (param_index != -1) {
+                        for (int i = param_index; i < argc; i++) {
+                            tamanioPS += strlen(argv[i]) + 1;
+                            argcSubrutina++;
+                        }
                     }
+                    tamanioPS += (argcSubrutina * 4); // Arreglo de punteros al final
                 }
-                tamanioPS += (argcSubrutina * 4); // Arreglo de punteros al final
 
                 // 2. Ordenar los tamaños para la memoria física: PS, KS, CS, DS, ES, SS
                 // Según el archivo .vmx, validarDatos los guardó en:
