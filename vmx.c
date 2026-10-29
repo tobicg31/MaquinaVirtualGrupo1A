@@ -129,18 +129,30 @@ void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[R
     DesensamblarEstatico(memoria+tabla[registros[CS]>>16][0], tamCodigo, nomRegistro, 2);
 }
 
-void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, char *nomRegistro[32], int *enter, char *archivo_vmi){
-    int argv=3<<24; //memoria apuntando al 0
+void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, int offset_argv, char *nomRegistro[32], int *enter, char *archivo_vmi){
+    int argv=-1; //memoria apuntando al 0
     int RET = -1;
     if (tamanioPS>0){
-        PUSH(argv, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
-        PUSH(argcSubrutina, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
-        PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        argv = registros[PS] | offset_argv;
+        //PUSH(argv, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        //PUSH(argcSubrutina, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        //PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
     }else{
-        PUSH(-1, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
-        PUSH(0, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
-        PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        argcSubrutina = 0;
+        //PUSH(-1, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        //PUSH(0, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
+        //PUSH(RET, 0, 0, memoria, registros, tabla, 0, nomRegistro, 2, enter, archivo_vmi);
     }
+    registros[SP] -= 4;
+    escribirMemoria32(memoria, dirFisica(registros[SP], tabla, 4), argv, 2, 4);
+
+    // 2. PUSH argc
+    registros[SP] -= 4;
+    escribirMemoria32(memoria, dirFisica(registros[SP], tabla, 4), argcSubrutina, 2, 4);
+
+    // 3. PUSH RET
+    registros[SP] -= 4;
+    escribirMemoria32(memoria, dirFisica(registros[SP], tabla, 4), RET, 2, 4);
 }
 
 void main(int argc, char *argv[]) {
@@ -226,7 +238,7 @@ void main(int argc, char *argv[]) {
                 // tamanioSegmentos[3] = SS
                 // tamanioSegmentos[4] = KS
                 short int tamOrdenados[6] = {tamanioPS,tamanioSegmentos[4], tamanioSegmentos[0], tamanioSegmentos[1], tamanioSegmentos[2],tamanioSegmentos[3]};
-
+                int offset_argv;
                 if (sumaTamanios(tamOrdenados) <= tam_memoria_kib*1024){
                     //printf("llegddo");
                     // 3. Inicializar la tabla y los registros de segmentos
@@ -261,7 +273,7 @@ void main(int argc, char *argv[]) {
                                 }
                             }
                         }
-
+                        offset_argv = offset_actual;
                         // 3. Escribir el arreglo de punteros (4 bytes por argumento) en formato Big Endian
                         for (int i = 0; i < argcSubrutina; i++) {
                             int puntero = offsets_strings[i]; // Los 16 bits altos ya son 0
@@ -279,7 +291,7 @@ void main(int argc, char *argv[]) {
 
                     //inicializo pila sub principal:
                     int e;
-                    inicializoPila(memoria, tabla, registros, tamanioPS, argcSubrutina, nomRegistro, &e, archivo_vmi);
+                    inicializoPila(memoria, tabla, registros, tamanioPS, argcSubrutina, offset_argv,nomRegistro, &e, archivo_vmi);
                     //printf("ejecuta:");
                     Ejecucion(0,memoria, registros, tabla, nomRegistro, tamOrdenados[2], version, archivo_vmi);
                 }

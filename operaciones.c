@@ -455,10 +455,12 @@ void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int t
         return;
     }
     const char ident[5] = {'V','M','I','2','6'};
-    char version = 2;
+    short int version = 2;
     short int tamMemoriaKiB=16;
     fwrite(ident, 1, 5, f);
-    fwrite(&version, 1, 1, f);
+
+    fwrite(&version, sizeof(version), 1, f);
+
     fwrite(&tamMemoriaKiB, 2, 1, f);
     for (int i = 0; i < 32; i++)
         fwrite(&registros[i], 4, 1, f);

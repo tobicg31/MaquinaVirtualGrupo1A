@@ -1,111 +1,30 @@
 \\DATA 100
-\\STACK 1024
+\\STACK 256
 
-HOLA    EQU  "Hola VM\n"
-PIDE    EQU  "Escribi una frase: "
-LARGO   EQU  "Largo: "
-NL      EQU  "\n"
+SALUDO EQU "Argumentos recibidos correctamente\n"
 
 main:   push bp
         mov  bp, sp
 
-        ; 1) SYS 4 con una constante string (Const Segment)
-        mov  edx, ks
-        add  edx, HOLA
-        sys  4
-
-        ; 2) CALL con parametros por la pila: suma(10, 20)
-        push 20                     ; 2do parametro primero
-        push 10
-        call suma
-        add  sp, 8                  ; EAX = 30
-        push eax
-        mov  edx, sp                ; EDX apunta al valor en la pila
-        ldl  ecx, 1                 ; cantidad = 1
-        ldh  ecx, 4                 ; tamanio de celda = 4 bytes
-        mov  eax, 1                 ; formato decimal
-        sys  2                      ; deberia mostrar 30
-        add  sp, 4
-
-        sys  15
-        mov  eax, 7
-        add  eax, 1
-        add  eax, 1
-        ; 3) SYS 3: leer una frase (con espacios) en el Data Segment
-        mov  edx, ks
-        add  edx, PIDE
-        sys  4
-        mov  edx, ds                ; EDX = &frase (offset 0 del DS)
-        mov  ecx, 80                ; maximo de caracteres
-        sys  3
-        mov  edx, ds
-        sys  4                      ; la imprime de vuelta
-        mov  edx, ks
-        add  edx, NL
-        sys  4
-
-        ; 4) subrutina que recorre el string con b[...]
-        push ds                     ; parametro: puntero a la frase
-        call slen                   ; EAX = largo
-        add  sp, 4
-        mov  ebx, eax
-        mov  edx, ks
-        add  edx, LARGO
-        sys  4
-        push ebx
+        ; 1) Mostrar argc (está en [bp+8])
+        push [bp+8]
         mov  edx, sp
         ldl  ecx, 1
         ldh  ecx, 4
-        mov  eax, 1
-        sys  2                      ; largo de la frase
+        mov  eax, 1         ; Formato decimal
+        sys  2              ; Imprime el valor de argc
         add  sp, 4
 
-        ; 5) breakpoint: probar Enter (paso a paso), g (seguir) y q (salir)
-        sys  15
-        mov  eax, 7
-        add  eax, 1
-        add  eax, 1
-
-        ; 6) argc y argv[0] que deja la VM en la pila
-        push [bp+8]                 ; argc
-        mov  edx, sp
-        ldl  ecx, 1
-        ldh  ecx, 4
-        mov  eax, 1
-        sys  2
-        add  sp, 4
-        cmp  [bp+12], -1            ; -1 = no hay parametros
+        ; 2) Verificar si argc == 0 para saltar el uso de argv
+        cmp  [bp+8], 0
         jz   fin
-        mov  ebx, [bp+12]           ; EBX = argv
-        mov  edx, [ebx]             ; EDX = argv[0]
-        sys  4
-        mov  edx, ks
-        add  edx, NL
-        sys  4
+        sys 15
+
+        ; 3) Mostrar argv[0] (el puntero al primer string está en [bp+12])
+        mov  ebx, [bp+12]   ; EBX apunta al inicio de los argumentos
+        mov  edx, [ebx]     ; EDX obtiene la dirección lógica del string argv[0]
+        sys  4              ; Imprime el string usando el Const/Param Segment
 
 fin:    mov  sp, bp
-        pop  bp
-        ret
-
-suma:   push bp
-        mov  bp, sp
-        mov  eax, [bp+8]            ; 1er parametro
-        add  eax, [bp+12]           ; 2do parametro
-        mov  sp, bp
-        pop  bp
-        ret
-
-slen:   push bp
-        mov  bp, sp
-        push edx
-        mov  edx, [bp+8]            ; puntero al string
-        mov  eax, 0
-sl1:    cmp  b[edx], 0
-        jz   sl2
-        add  eax, 1
-        add  edx, 1
-        jmp  sl1
-sl2:    pop  edx
-        mov  sp, bp
         pop  bp
         ret
