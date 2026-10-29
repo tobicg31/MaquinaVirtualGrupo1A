@@ -573,7 +573,7 @@ void Ejecucion(int flag, char memoria[MEMORIA], int registros[REGISTROS], short 
         }
          if (registros[IP]!=-1){ //si no me escribieron q en breakpoint, sigo ejecutando
          registros[IP] += 1+TopB+TopA; 
-        printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
+        //printf("operacion:%d tipo de op1:%d tipo de op2:%d\n", registros[OPC], TopA, TopB);
         Operaciones[registros[OPC]](registros[OP1], registros[OP2], flag, memoria, registros, tabla, IPant, nomRegistro, version,&enter, archivo_vmi);
         
         }
