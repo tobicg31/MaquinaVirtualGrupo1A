@@ -258,7 +258,7 @@ void JN(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
     }
 }
 void JZ(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2], int IPant, char *nomRegistro[32], int ver,int *enter, char *archivo_vmi){
-    if ((((uint32_t)registros[CC] >> 30) & 1)==1){ // N==0 Z==1
+    if (((registros[CC] >> 30) & 1)==1){ // N==0 Z==1
         JMP(op1, op2, 0, memoria, registros, tabla, IPant, nomRegistro, ver,enter,archivo_vmi);
     }
 }
