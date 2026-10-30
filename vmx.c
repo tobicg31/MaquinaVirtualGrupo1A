@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "operaciones.h"
+#include <winsock.h>
 
 int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
@@ -48,7 +49,7 @@ void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short in
     }
 }
 
-void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver) {
+void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver, int offsetEntryPoint) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
     
@@ -105,6 +106,8 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
 
         // 3. Llamar a la función existente (forzando flag=1 para que imprima)
         char dummy[100];
+        if (ver == 2 && IPant == offsetEntryPoint)
+            printf(">");
         disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], dummy, ver);
     }
     }
@@ -129,7 +132,7 @@ void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[R
         DesensamblarEstatico(memoria+tabla[registros[CS]>>16][0], tamCodigo, nomRegistro, 2);
     }
     */
-        void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
+void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32], int offsetEntryPoint){
     int registrosMentira[REGISTROS] = {0};
     
     if (tamConst > 0){
@@ -153,8 +156,7 @@ void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[R
             disassembler(1, 4, 0, 0, nomRegistro, offsetInicioCadena, constSegment, registrosMentira, "", cadena, 2);
         }
     }
-    printf(">");
-    DesensamblarEstatico(memoria + tabla[registros[CS] >> 16][0], tamCodigo, nomRegistro, 2);
+    DesensamblarEstatico(memoria + tabla[registros[CS] >> 16][0], tamCodigo, nomRegistro, 2,offsetEntryPoint);
 }
 
 void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, int offset_argv, char *nomRegistro[32], int *enter, char *archivo_vmi){
@@ -235,7 +237,7 @@ void main(int argc, char *argv[]) {
                     memoria[j++] = dato;
                 }
                 if (flag) {  
-                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro,1);
+                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro,1,0);
                 }
                 registros[CS] = 0x00000000;
                 registros[DS] = 0x00010000;
@@ -317,7 +319,7 @@ void main(int argc, char *argv[]) {
                     //printf("ejecuto en base al vmx");
                     //dissasembler v2:
                     if(flag)
-                        Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro);
+                        Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro, tamanioSegmentos[5]);
 
                     //inicializo pila sub principal:
                     int e;
@@ -340,7 +342,7 @@ void main(int argc, char *argv[]) {
         //cargar desde el vmi
         //ejecucion
         FILE * archvmi = fopen(archivo_vmi, "rb");
-        char ident[5]; char id; short int verVmi; short int tamMemoria;
+        char ident[6]; char id; short int verVmi; short int tamMemoria;
 
 
         //fread(ident, sizeof(char)*5, 1, archvmi);
@@ -354,17 +356,22 @@ void main(int argc, char *argv[]) {
 
 
         if (strcmp("VMI26", ident) == 0){
-            if(fread(&verVmi, sizeof(short int), 1, archvmi)==1){
+            if(fread(&verVmi, 1, 1, archvmi)==1){
                 fread(&tamMemoria, sizeof(tamMemoria), 1, archvmi);
+                tamMemoria = ntohs(tamMemoria);
+                //tamanioMemoriaEnKiB = tamMemoria;
                 int i;
                 //cargo los registros
                 for (i=0; i<32; i++){
                     fread(&registros[i], 4, 1, archvmi);
+                    registros[i] = ntohl(registros[i]);
                 }
                 //cargo la tabla
                 for (i=0; i<8; i++){
                     fread(&tabla[i][0], 2, 1, archvmi);
-                    fread(&tabla[i][1], 2, 1, archvmi);                    
+                    fread(&tabla[i][1], 2, 1, archvmi);    
+                    tabla[i][0] = ntohs(tabla[i][0]);
+                    tabla[i][1] = ntohs(tabla[i][1]);                
                 }
                 //cargo la memoria
                 for (i=0; i<tamMemoria*1024; i++){
@@ -373,8 +380,8 @@ void main(int argc, char *argv[]) {
                 //dissasembler:
                 //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
-                printf("ejecuto desde un vmi");
-                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[registros[CS]>>16][1], verVmi, archivo_vmi);
+                //printf("ejecuto desde un vmi");
+                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[registros[CS]>>16][1], 2, archivo_vmi);
             }
         }
     } else {
