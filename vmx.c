@@ -380,7 +380,7 @@ void main(int argc, char *argv[]) {
                 //dissasembler:
                 //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
-                printf("ejecuto desde un vmi");
+                //printf("ejecuto desde un vmi");
                 Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[registros[CS]>>16][1], 2, archivo_vmi);
             }
         }
