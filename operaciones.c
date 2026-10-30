@@ -8,48 +8,43 @@
 
 
 void escribirRegistro(int registros[REGISTROS], int regis, int valor, int ver){
+    int codReg = regis &0x1F;
     if(ver==1){
-        registros[regis]=valor;
+        registros[codReg]=valor;
         return;
     }
     switch ((regis >> 5) & 0x3){
     case 3:
-        registros[regis] = registros[regis] & 0xFFFF0000 | (valor & 0xFFFF);
+        registros[codReg] = registros[codReg] & 0xFFFF0000 | (valor & 0xFFFF);
         break;
     case 2:
-        registros[regis] = registros[regis] & 0xFFFF00FF | ((valor & 0xFF) << 8);
+        registros[codReg] = registros[codReg] & 0xFFFF00FF | ((valor & 0xFF) << 8);
         break;
     case 1:
-        registros[regis] = registros[regis] & 0xFFFFFF00 | (valor & 0xFF);
+        registros[codReg] = registros[codReg] & 0xFFFFFF00 | (valor & 0xFF);
         break;
     default:
-        registros[regis] = valor;
+        registros[codReg] = valor;
         break;
     }
 }
 
 int32_t leerRegistro(int registros[REGISTROS], int regis, int ver){
-    int32_t valor = 0xFFFFFFFF;
-    if (registros[regis] >= 0)
-        valor = 0;
+    int codReg = regis &0x1F;
+    if (registros[codReg] >= 0)
         switch ((regis >> 5) & 0x3){
             case 3:
-            valor |= registros[regis] & 0xFFFF;
-            break;
+                return (int16_t)registros[codReg] & 0xFFFF;
             case 2:
-            valor |= (registros[regis] >> 8) & 0xFF;
-            break;
+                return (int8_t) (registros[codReg] >> 8) & 0xFF;
             case 1:
-            valor |= registros[regis] & 0xFF;
-            break;
+                return (int8_t)registros[codReg] & 0xFF;
             default:
-            valor = registros[regis];
-            break;
+                return registros[codReg];
         }
     if (ver==1){
-        valor=registros[regis];
+        return registros[codReg];
     }
-    return valor;
 }
 
 int32_t leerMemoria32(char memoria[MEMORIA], int dir, int ver, int mod){
@@ -62,7 +57,7 @@ int32_t leerMemoria32(char memoria[MEMORIA], int dir, int ver, int mod){
     else{
         int32_t dato = 0;
         for (int i = 0; i < mod; i++){
-            dato |= memoria[dir + i] << (mod - i - 1) * 8;
+            dato |= (unsigned char)memoria[dir + i] << (mod - i - 1) * 8;
         }
         return dato;
     }
@@ -85,9 +80,15 @@ void escribirMemoria32(char memoria[MEMORIA], int dir, int32_t valor, int ver, i
 }
 
 void cargarLAR(int op, int registros[REGISTROS], short int tabla[8][2]){
+    int id_reg = op&0x1F;
     int base = registros[op & 0x1F]; // puntero base: segmento(16) + offset(16)
     int segmento = (base >> 16) & 0xFFFF;
     int offsetBase = base & 0xFFFF;
+
+    if (segmento == 0 && id_reg >= 10 && id_reg <= 15) {
+        segmento = (registros[DS] >> 16) & 0xFFFF;
+    }
+
     int desplazamiento = (op >> 8) & 0xFFFF; // el offset codificado en la instruccion
     registros[LAR] = (segmento << 16) | ((offsetBase + desplazamiento) & 0xFFFF);
 }
@@ -120,7 +121,7 @@ void imprimirOperando(int Top, int op, char *nomRegistro[32], char cadena[100], 
     }else{
         switch (Top){
         case 1:
-            char registro[3];
+            char registro[8];
             registro[0] = nomRegistro[op & 0x1F][1];
             registro[2]='\0';
             //printf("%s", nomRegistro[op & 0x1F]);
@@ -161,7 +162,10 @@ void imprimirOperando(int Top, int op, char *nomRegistro[32], char cadena[100], 
             printf("[%s+%d]", nomRegistro[reg], offset);
             break;
         case 4:
-            printf("%s\"", cadena);
+            printf("\"");
+            for (int i = 0; cadena[i] != '\0'; i++)
+                printf("%c", isprint((unsigned char)cadena[i]) ? cadena[i] : '.');
+            printf("\"");
             break;
         }
     }
@@ -175,7 +179,7 @@ void disassembler(int flag, int tOp, int op1, int op2, char *nomRegistro[32], in
                 printf("%02X ", (unsigned char)memoria[i]);
             }
         }else{
-            for(int i = IPant; i<6; i++){
+            for(int i = IPant; i<IPant+6; i++){
                 printf("%02X ", (unsigned char)memoria[i]);
             }
             printf("..");
@@ -221,7 +225,7 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 // guardar en el MbR el valor:
                 registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op1 >> 5) & 0x7);
 
-                registros[IP] = registros[MBR]; // hago el salto;
+                registros[IP] = (registros[IP] & 0xFFFF0000) | (registros[MBR] & 0xFFFF); // salto relativo al CS
             }
             else{
                 printf("FALLO DE SEGMENTO");
@@ -236,7 +240,7 @@ void JMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){ // registro
-        registros[IP] = leerRegistro(registros, op1&0x1F, ver);
+        registros[IP] = (registros[IP] & 0xFFFF0000) | (leerRegistro(registros, op1 & 0x7F, ver) & 0xFFFF);
     }
     else{ // operando inmediato
         // Mantenemos el segmento (bits altos) y reemplazamos el offset (bits bajos)
@@ -330,7 +334,7 @@ void NOT(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){ // registro
-        escribirRegistro(registros, op1&0x1F, ~leerRegistro(registros, op1&0x1F, ver), ver);
+        escribirRegistro(registros, op1&0x7F, ~leerRegistro(registros, op1&0x7F, ver), ver);
     }
     else{ // segundo op inmediato
         int dir = tabla[registros[DS] >> 16][0] + ((op1 & 0xFFFFFF) & 0xFFFF);
@@ -374,7 +378,7 @@ void PUSH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIS
     else   
         if (op1 >> 24 == 1){//registro
 
-            int32_t leer = leerRegistro(registros, op1 & 0x1F, ver);
+            int32_t leer = leerRegistro(registros, op1 & 0x7F, ver);
             registros[SP] -= 4;
             escribirMemoria32(memoria, dirFis, leer, ver, 4);
         }
@@ -418,7 +422,7 @@ void POP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             }
         }
         else if (op1 >> 24 == 1){ // registro
-            escribirRegistro(registros, op1 & 0x1F, leerMemoria32(memoria, dirFis, ver, 4), ver);
+            escribirRegistro(registros, op1 & 0x7F, leerMemoria32(memoria, dirFis, ver, 4), ver);
             registros[SP] += 4;
         }
     }
@@ -480,7 +484,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
     int tiposys = (short int)op1 & 0xFFFF;
     if (tiposys == 15){ //aca porque no hay q validar nada, es un sys de breakpoint, no tiene sentido validar si se puede leer o escribir memoria
           if (archivo_vmi == NULL){
-        printf("[BREAKPOINT] no se indico archivo .vmi: no se genera imagen\n");
+            //printf("[BREAKPOINT] no se indico archivo .vmi: no se genera imagen\n");
         return;
           }
         else {
@@ -695,7 +699,7 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){ // Registro
-        valor_fuente = leerRegistro(registros, op2&0x1F,ver) ;
+        valor_fuente = leerRegistro(registros, op2&0x7F,ver) ;
     }
     else{ // Inmediato
         short int inmediato16 = (short int)(op2 & 0xFFFF);
@@ -724,7 +728,7 @@ void MOV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){ // Registro
-        escribirRegistro(registros, op1&0x1F, valor_fuente, ver);
+        escribirRegistro(registros, op1&0x7F, valor_fuente, ver);
     }
 
     cambiarCC(valor_fuente, 0, 0, registros); // MOV afecta al registro CC[cite: 4]
@@ -757,7 +761,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){ // Registro
-        valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
+        valor_fuente = leerRegistro(registros, op2 & 0x7F, ver);
     }
     else{ // Inmediato
         valor_fuente = (int)(short int)(op2 & 0xFFFF);
@@ -786,7 +790,7 @@ void ADD(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){ // Registro
-        valor_destino = leerRegistro(registros, op1 & 0x1F, ver);
+        valor_destino = leerRegistro(registros, op1 & 0x7F, ver);
         escribirRegistro(registros, op1&0x1F,valor_destino + valor_fuente, ver);
     }
     int64_t res_signed = (int64_t)valor_destino + (int64_t)valor_fuente;
@@ -827,7 +831,7 @@ void SUB(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){ // Registro
-        valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
+        valor_fuente = leerRegistro(registros, op2 & 0x7F, ver);
     }
     else{ // Inmediato
         valor_fuente = (int)(short int)(op2 & 0xFFFF);
@@ -902,7 +906,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){ // Registro
-        valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
+        valor_fuente = leerRegistro(registros, op2 & 0x7F, ver);
     }
     else{ // Inmediato
         valor_fuente = op2 & 0xFFFFFF;
@@ -931,7 +935,7 @@ void MUL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){ // Registro
-        valor_destino = leerRegistro(registros, op1 & 0x1F, ver);
+        valor_destino = leerRegistro(registros, op1 & 0x7F, ver);
         escribirRegistro(registros, op1&0x1F,valor_destino * valor_fuente, ver);
     }
     res_signed = (int64_t)valor_destino * (int64_t)valor_fuente;
@@ -974,7 +978,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){ // Registro
-        valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
+        valor_fuente = leerRegistro(registros, op2 & 0x7F, ver);
     }
     else{ // Inmediato
         valor_fuente = op2 & 0xFFFFFF;
@@ -1011,7 +1015,7 @@ void DIV(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             }
         }
         else if (op1 >> 24 == 1){ // Registro
-            valor_destino = leerRegistro(registros, op1 & 0x1F, ver);
+            valor_destino = leerRegistro(registros, op1 & 0x7F, ver);
              escribirRegistro(registros, op1&0x1F,valor_destino / valor_fuente, ver);
             registros[AC] = valor_destino % valor_fuente;
             // printf(" sdsdas%d", registros[AC]);
@@ -1050,7 +1054,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){ // Registro
-        valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
+        valor_fuente = leerRegistro(registros, op2 & 0x7F, ver);
     }
     else{ // Inmediato
         short int inm = (short int) op2 & 0xFFFFFF;
@@ -1079,7 +1083,7 @@ void CMP(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){ // Registro
-        valor_destino = leerRegistro(registros, op1 & 0x1F, ver);
+        valor_destino = leerRegistro(registros, op1 & 0x7F, ver);
     }
     // Cálculo de desbordamiento y acarreo
     res_signed = (int64_t)valor_destino - (int64_t)valor_fuente;
@@ -1119,7 +1123,7 @@ void AND(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                             // guardar en el MbR el valor:
                             registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
                             int valorA = leerMemoria32(memoria, dirOpA, ver, (op1 >> 5) & 0x7);
-                            escribirMemoria32(memoria, dirOpA, valorA &= registros[MBR], ver, (op2 >> 5) & 0x7);
+                            escribirMemoria32(memoria, dirOpA, valorA &= registros[MBR], ver, (op1 >> 5) & 0x7);
                         }
                         else{
                             printf("FALLO DE SEGMENTO");
@@ -1234,7 +1238,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
                 }
                 else{ // segundo op inmediato
                     int res = leerMemoria32(memoria, dirOpA, ver, (op1 >> 5) & 0x7);
-                    escribirMemoria32(memoria, dirOpA, res &= (op2 & 0xFFFFFF), ver, (op1 >> 5) & 0x7);
+                    escribirMemoria32(memoria, dirOpA, res |= (op2 & 0xFFFFFF), ver, (op1 >> 5) & 0x7);
                 }
                 cambiarCC(leerMemoria32(memoria, dirOpA, ver, (op1 >> 5) & 0x7), 0, 0, registros);
             }
@@ -1260,7 +1264,7 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
                 registros[MAR] |= tabla[registros[LAR] >> 16][0] + (registros[LAR] & 0xFFFF);
                 if (validoDirFisica(op2, registros, tabla)){
                     // guardar en el MbR el valor:
-                    int dest = leerRegistro(registros, op1 & 0x1F, ver);
+                    int dest = leerRegistro(registros, op1 & 0x7F, ver);
                     registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
                     escribirRegistro(registros, op1&0x1F, dest|= registros[MBR], ver);
                 }
@@ -1277,11 +1281,11 @@ void OR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGISTR
             }
         }
         else if (op2 >> 24 == 1){ // segundo op de registro
-            int dest = leerRegistro(registros, op1 & 0x1F, ver);
+            int dest = leerRegistro(registros, op1 & 0x7F, ver);
             escribirRegistro(registros, op1&0x1F, dest |= leerRegistro(registros, op2 & 0x1F, ver), ver);
         }
         else{ // segundo op inmediato
-            int dest = leerRegistro(registros, op1 & 0x1F, ver);
+            int dest = leerRegistro(registros, op1 & 0x7F, ver);
             escribirRegistro(registros, op1&0x1F, dest |=(op2 & 0xFFFFFF), ver);
         }
         cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
@@ -1328,7 +1332,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 }
                 else if (op2 >> 24 == 1){ // segundo op de registro
                     int res = leerMemoria32(memoria, dirOpA, ver, (op1 >> 5) & 0x7);
-                    escribirMemoria32(memoria, dirOpA, res ^= leerRegistro(registros, op1 & 0x1F, ver), ver, (op1 >> 5) & 0x7);
+                    escribirMemoria32(memoria, dirOpA, res ^= leerRegistro(registros, op2 & 0x7F, ver), ver, (op1 >> 5) & 0x7);
                 }
                 else{ // segundo op inmediato
                     int res = leerMemoria32(memoria, dirOpA, ver, (op1 >> 5) & 0x7);
@@ -1359,7 +1363,7 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 if (validoDirFisica(op2, registros, tabla)){
                     // guardar en el MbR el valor:
                     registros[MBR] = leerMemoria32(memoria, registros[MAR] & 0xFFFF, ver, (op2 >> 5) & 0x7);
-                    int dest=leerRegistro(registros, op1 & 0x1F, ver);
+                    int dest=leerRegistro(registros, op1 & 0x7F, ver);
                     escribirRegistro(registros, op1&0x1F,dest^= registros[MBR] , ver);
                 }
                 else{
@@ -1375,11 +1379,11 @@ void XOR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
             }
         }
         else if (op2 >> 24 == 1){ // segundo op de registro
-            int dest=leerRegistro(registros, op1 & 0x1F, ver);
+            int dest=leerRegistro(registros, op1 & 0x7F, ver);
             escribirRegistro(registros, op1&0x1F, dest ^= leerRegistro(registros, op2 & 0x1F, ver), ver);
         }
         else{ // segundo op inmediato
-            int dest=leerRegistro(registros, op1 & 0x1F, ver);
+            int dest=leerRegistro(registros, op1 & 0x7F, ver);
             escribirRegistro(registros, op1&0x1F, dest ^= (op2 & 0xFFFFFF), ver);
         }
         cambiarCC(registros[op1 & 0x1F], 0, 0, registros);
@@ -1470,7 +1474,7 @@ void SHL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 else if (op2 >> 24 == 1){ // segundo op de registro
                     int valorDeA = leerMemoria32(memoria, direfisopa, ver, (op1 >> 5) & 0x7);
                     registros[CC] = 0; // limpio CC
-                    int tope= leerRegistro(registros, op2 & 0x1F, ver);
+                    int tope= leerRegistro(registros, op2 & 0x7F, ver);
 
                     for (i = 1; i <= tope; i++){                                                                                // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                         primerbit = leerMemoria32(memoria, direfisopa, ver, (op1 >> 5) & 0x7) >> 31; // agarro el primer bit y me guardo su valor, si es uno y se hace shiftleft habre carreo
@@ -1698,7 +1702,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 }
                 else if (op2 >> 24 == 1){ // segundo op de registro
 
-                    for (i = 1; i <= leerRegistro(registros, op2 & 0x1F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+                    for (i = 1; i <= leerRegistro(registros, op2 & 0x7F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                         valorDeA >>= 1;
                         clonsinsigno >>= 1;
                     }
@@ -1780,7 +1784,7 @@ void SHR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
         else if (op2 >> 24 == 1){ // segundo op de registro
 
-            for (i = 1; i <= leerRegistro(registros, op2 & 0x1F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+            for (i = 1; i <= leerRegistro(registros, op2 & 0x7F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                 escribirRegistro(registros, op1&0x1F, (uint32_t)leerRegistro(registros, op1 & 0x1F, ver)>>1, ver);
                 clonsinsigno >>= 1;
             }
@@ -1866,7 +1870,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                 }
                 else if (op2 >> 24 == 1){ // segundo op de registro
 
-                    for (i = 1; i <= leerRegistro(registros, op2 & 0x1F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+                    for (i = 1; i <= leerRegistro(registros, op2 & 0x7F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                         valorA >>= 1;
                         valorA |= bitdesigno << 31;
                         clonsinsigno >>= 1;
@@ -1928,7 +1932,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
                     for (i = 1; i <= registros[MBR]; i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                         
                         escribirRegistro(registros, op1&0x1F, (uint32_t)leerRegistro(registros, op1 & 0x1F, ver)>>1, ver);
-                        uint32_t dest= (uint32_t)leerRegistro(registros, op1 & 0x1F, ver);
+                        uint32_t dest= (uint32_t)leerRegistro(registros, op1 & 0x7F, ver);
                         escribirRegistro(registros, op1&0x1F, dest|= bitdesigno << 31, ver);
                         clonsinsigno >>= 1;
                     }
@@ -1953,9 +1957,9 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
         else if (op2 >> 24 == 1){ // segundo op de registro
 
-            for (i = 1; i <= leerRegistro(registros, op2 & 0x1F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
+            for (i = 1; i <= leerRegistro(registros, op2 & 0x7F, ver); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                 escribirRegistro(registros, op1&0x1F, (uint32_t)leerRegistro(registros, op1 & 0x1F, ver)>>1, ver);
-                        uint32_t dest= (uint32_t)leerRegistro(registros, op1 & 0x1F, ver);
+                        uint32_t dest= (uint32_t)leerRegistro(registros, op1 & 0x7F, ver);
                         escribirRegistro(registros, op1&0x1F, dest|= bitdesigno << 31, ver);
                 clonsinsigno >>= 1;
             }
@@ -1970,7 +1974,7 @@ void SAR(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
 
             for (i = 1; i <= (op2 & 0xFFFFFF); i++){ // en cada iteracion pregunto por desbordamiento y Acarreo, ademas de irle haciendo el shift
                 escribirRegistro(registros, op1&0x1F, (uint32_t)leerRegistro(registros, op1 & 0x1F, ver)>>1, ver);
-                uint32_t dest= (uint32_t)leerRegistro(registros, op1 & 0x1F, ver);
+                uint32_t dest= (uint32_t)leerRegistro(registros, op1 & 0x7F, ver);
                 escribirRegistro(registros, op1&0x1F, dest|= bitdesigno << 31, ver);
                 clonsinsigno >>= 1;
             }
@@ -2001,7 +2005,7 @@ void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){
-        valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
+        valor_fuente = leerRegistro(registros, op2 & 0x7F, ver);
     }
     else{
         valor_fuente = op2 & 0xFFFFFF;
@@ -2026,7 +2030,7 @@ void LDL(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){
-        valor_destino = leerRegistro(registros, op1 & 0x1F, ver);
+        valor_destino = leerRegistro(registros, op1 & 0x7F, ver);
         valor_destino = (valor_destino & 0xFFFF0000) | (valor_fuente & 0xFFFF);
         escribirRegistro(registros, op1&0x1F, valor_destino, ver);
     }
@@ -2049,7 +2053,7 @@ void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op2 >> 24 == 1){
-        valor_fuente = leerRegistro(registros, op2 & 0x1F, ver);
+        valor_fuente = leerRegistro(registros, op2 & 0x7F, ver);
     }
     else{
         valor_fuente = op2 & 0xFFFFFF;
@@ -2074,7 +2078,7 @@ void LDH(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         }
     }
     else if (op1 >> 24 == 1){
-        valor_destino = leerRegistro(registros, op1 & 0x1F, ver);
+        valor_destino = leerRegistro(registros, op1 & 0x7F, ver);
         valor_destino = (valor_destino & 0x0000FFFF) | ((valor_fuente & 0xFFFF) << 16);
         escribirRegistro(registros, op1&0x1F, valor_destino, ver);
     }

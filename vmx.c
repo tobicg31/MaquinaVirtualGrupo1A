@@ -48,7 +48,7 @@ void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short in
     }
 }
 
-void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver) {
+void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver, int offsetEntryPoint) {
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
     
@@ -105,6 +105,8 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
 
         // 3. Llamar a la función existente (forzando flag=1 para que imprima)
         char dummy[100];
+        if (ver == 2 && IPant == offsetEntryPoint)
+            printf(">");
         disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], dummy, ver);
     }
     }
@@ -129,7 +131,7 @@ void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[R
         DesensamblarEstatico(memoria+tabla[registros[CS]>>16][0], tamCodigo, nomRegistro, 2);
     }
     */
-        void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32]){
+void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], short int tamCodigo, short int tamConst, char *nomRegistro[32], int offsetEntryPoint){
     int registrosMentira[REGISTROS] = {0};
     
     if (tamConst > 0){
@@ -153,8 +155,7 @@ void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[R
             disassembler(1, 4, 0, 0, nomRegistro, offsetInicioCadena, constSegment, registrosMentira, "", cadena, 2);
         }
     }
-    printf(">");
-    DesensamblarEstatico(memoria + tabla[registros[CS] >> 16][0], tamCodigo, nomRegistro, 2);
+    DesensamblarEstatico(memoria + tabla[registros[CS] >> 16][0], tamCodigo, nomRegistro, 2,offsetEntryPoint);
 }
 
 void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, int offset_argv, char *nomRegistro[32], int *enter, char *archivo_vmi){
@@ -235,7 +236,7 @@ void main(int argc, char *argv[]) {
                     memoria[j++] = dato;
                 }
                 if (flag) {  
-                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro,1);
+                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro,1,0);
                 }
                 registros[CS] = 0x00000000;
                 registros[DS] = 0x00010000;
@@ -317,7 +318,7 @@ void main(int argc, char *argv[]) {
                     //printf("ejecuto en base al vmx");
                     //dissasembler v2:
                     if(flag)
-                        Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro);
+                        Dissasembler2(memoria, tabla, registros, tamOrdenados[2], tamOrdenados[1], nomRegistro, tamanioSegmentos[5]);
 
                     //inicializo pila sub principal:
                     int e;
