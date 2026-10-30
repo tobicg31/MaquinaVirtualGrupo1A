@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "operaciones.h"
+#include <winsock.h>
 
 int validarDatos(FILE * arch, short int tamanioSegmentos[10], char *version);
 void inicializarTabla(short int tamCodigo, short int Tabla[][2]);
@@ -341,7 +342,7 @@ void main(int argc, char *argv[]) {
         //cargar desde el vmi
         //ejecucion
         FILE * archvmi = fopen(archivo_vmi, "rb");
-        char ident[5]; char id; short int verVmi; short int tamMemoria;
+        char ident[6]; char id; short int verVmi; short int tamMemoria;
 
 
         //fread(ident, sizeof(char)*5, 1, archvmi);
@@ -355,17 +356,22 @@ void main(int argc, char *argv[]) {
 
 
         if (strcmp("VMI26", ident) == 0){
-            if(fread(&verVmi, sizeof(short int), 1, archvmi)==1){
+            if(fread(&verVmi, 1, 1, archvmi)==1){
                 fread(&tamMemoria, sizeof(tamMemoria), 1, archvmi);
+                tamMemoria = ntohs(tamMemoria);
+                //tamanioMemoriaEnKiB = tamMemoria;
                 int i;
                 //cargo los registros
                 for (i=0; i<32; i++){
                     fread(&registros[i], 4, 1, archvmi);
+                    registros[i] = ntohl(registros[i]);
                 }
                 //cargo la tabla
                 for (i=0; i<8; i++){
                     fread(&tabla[i][0], 2, 1, archvmi);
-                    fread(&tabla[i][1], 2, 1, archvmi);                    
+                    fread(&tabla[i][1], 2, 1, archvmi);    
+                    tabla[i][0] = ntohs(tabla[i][0]);
+                    tabla[i][1] = ntohs(tabla[i][1]);                
                 }
                 //cargo la memoria
                 for (i=0; i<tamMemoria*1024; i++){
@@ -375,7 +381,7 @@ void main(int argc, char *argv[]) {
                 //preguntar si al retomar un vmi hay que mostrar el diss
                 //ejecuto al toque
                 printf("ejecuto desde un vmi");
-                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[registros[CS]>>16][1], verVmi, archivo_vmi);
+                Ejecucion(0,memoria, registros, tabla, nomRegistro, tabla[registros[CS]>>16][1], 2, archivo_vmi);
             }
         }
     } else {
