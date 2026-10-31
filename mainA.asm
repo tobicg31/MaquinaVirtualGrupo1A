@@ -73,7 +73,8 @@ main:   sys 15
         call inorder
         add sp, 4
 
-main_end:       sys 15   
+main_end:       sys 15
+        sys 0
         pop edx
         pop eax
         mov sp,bp

@@ -519,7 +519,7 @@ void SYS(int op1, int op2, int flag, char memoria[MEMORIA], int registros[REGIST
         
     }
     }else if (tiposys == 0){
-        printf("\x1b[2J\x1b[H");
+        system("cls");
         return;
 
     }
