@@ -466,9 +466,9 @@ int dirFisica(int dir, short int tabla[8][2], int bytes){
 
 void hacebreakpoint(char memoria[MEMORIA], int registros[REGISTROS], short int tabla[8][2],char *archivo_vmi){
     FILE * f = fopen(archivo_vmi, "wb");
-    printf("[BREAKPOINT] se genera imagen en %s\n", archivo_vmi);
+   // printf("[BREAKPOINT] se genera imagen en %s\n", archivo_vmi);
     if (!f){
-        printf("[BREAKPOINT] no se pudo crear %s\n", archivo_vmi);
+        //printf("[BREAKPOINT] no se pudo crear %s\n", archivo_vmi);
         return;
     }
     const char ident[5] = {'V','M','I','2','6'};

@@ -49,7 +49,8 @@ void inicializarTablaV2(int registros[REGISTROS], short int tabla[][2], short in
     }
 }
 
-void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomRegistro[32], int ver, int offsetEntryPoint) {
+void DesensamblarEstatico(char memoriaC[MEMORIA], int baseFisicaCodigo, short int tamCodigo, char* nomRegistro[32], int ver, int offsetEntryPoint) {
+    char *memoria = memoriaC + baseFisicaCodigo; 
     int ip = 0;
     int registros_dummy[REGISTROS] = {0}; // Arreglo falso para satisfacer los parámetros
     
@@ -99,7 +100,7 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
         }
 
         // 2. Preparar registros_dummy y armar operandos consolidados
-        registros_dummy[IP] = ip; // Le decimos al disassembler hasta qué byte debe imprimir
+        registros_dummy[IP] = baseFisicaCodigo+ip; // Le decimos al disassembler hasta qué byte debe imprimir
         
         int op1_completo = (cant_operandos > 0) ? (TopA << 24) | opA : 0;
         int op2_completo = (cant_operandos == 2) ? (TopB << 24) | opB : 0;
@@ -108,7 +109,7 @@ void DesensamblarEstatico(char memoria[MEMORIA], short int tamCodigo, char* nomR
         char dummy[100];
         if (ver == 2 && IPant == offsetEntryPoint)
             printf(">");
-        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, IPant, memoria, registros_dummy, mnemonicos[opc], dummy, ver);
+        disassembler(1, cant_operandos, op1_completo, op2_completo, nomRegistro, baseFisicaCodigo+ IPant, memoriaC, registros_dummy, mnemonicos[opc], dummy, ver);
     }
     }
     /*
@@ -152,11 +153,11 @@ void Dissasembler2(char memoria[MEMORIA], short int tabla[8][2], int registros[R
 
             offsetActual++;   // saltear el '\0' terminador
 
-            registrosMentira[IP] = offsetActual;
-            disassembler(1, 4, 0, 0, nomRegistro, offsetInicioCadena, constSegment, registrosMentira, "", cadena, 2);
+            registrosMentira[IP] = baseConstSegment+offsetActual;
+            disassembler(1, 4, 0, 0, nomRegistro,baseConstSegment+ offsetInicioCadena, memoria, registrosMentira, "", cadena, 2);
         }
     }
-    DesensamblarEstatico(memoria + tabla[registros[CS] >> 16][0], tamCodigo, nomRegistro, 2,offsetEntryPoint);
+    DesensamblarEstatico(memoria,tabla[registros[CS] >> 16][0], tamCodigo, nomRegistro, 2,offsetEntryPoint);
 }
 
 void inicializoPila(char memoria[MEMORIA], short int tabla[8][2], int registros[REGISTROS], int tamanioPS, int argcSubrutina, int offset_argv, char *nomRegistro[32], int *enter, char *archivo_vmi){
@@ -237,7 +238,7 @@ void main(int argc, char *argv[]) {
                     memoria[j++] = dato;
                 }
                 if (flag) {  
-                    DesensamblarEstatico(memoria, tamanioSegmentos[0], nomRegistro,1,0);
+                    DesensamblarEstatico(memoria,0, tamanioSegmentos[0], nomRegistro,1,0);
                 }
                 registros[CS] = 0x00000000;
                 registros[DS] = 0x00010000;
@@ -489,7 +490,7 @@ int validarDatos(FILE *arch, short int tamanioSegmentos[10], char *version){
 
     if (strcmp(datos, "VMX26") == 0){
         fread(version, sizeof(char), 1, arch);
-        printf("%d", *version);
+        //printf("%d", *version);
         if ((*version) == 1){
             unsigned char byteAlto, byteBajo;
             fread(&byteAlto, 1, 1, arch);

@@ -1,4 +1,4 @@
-main:
+main:   sys 15
         push bp
         mov bp, sp
         mov edx, 16  
